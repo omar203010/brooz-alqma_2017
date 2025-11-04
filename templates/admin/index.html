@@ -1,0 +1,18 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 25px; margin-bottom: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <h2 style="color: white; margin-bottom: 20px; font-size: 24px;">📊 التقارير والتحليلات</h2>
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <a href="{% url 'units:payment_reports' %}" style="color: white; text-decoration: none; padding: 15px 30px; background: rgba(255,255,255,0.25); border-radius: 8px; font-weight: bold; display: inline-block; transition: all 0.3s; border: 2px solid rgba(255,255,255,0.3);" 
+           onmouseover="this.style.background='rgba(255,255,255,0.4)'" 
+           onmouseout="this.style.background='rgba(255,255,255,0.25)'">
+            💰 تقارير المدفوعات
+        </a>
+    </div>
+    <p style="margin-top: 15px; opacity: 0.9; font-size: 14px;">عرض جميع الحجوزات والمبالغ المدفوعة مع إمكانية التصدير إلى PDF و Excel</p>
+</div>
+{{ block.super }}
+{% endblock %}
+

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بروز القمة العقارية - إدارة وتشغيل العقارات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="hamburger-dropdown" id="hamburgerDropdown">
+        <div class="hamburger-dropdown-content">
+            <button class="close-menu" id="closeMenu" aria-label="إغلاق">
+                ×
+            </button>
+            <ul class="hamburger-menu-list">
+                <li>
+                    <a href="#about" class="hamburger-menu-link">
+                        <span>من نحن</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'units:services' %}" class="hamburger-menu-link">
+                        <span>خدماتنا</span>
+                    </a>
+                </li>
+                <li>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'units:dashboard' %}" class="hamburger-menu-link">
+                        <span>وحدتي</span>
+                    </a>
+                    {% endif %}
+                </li>
+                <li>
+                    <a href="{% url 'units:policy' %}" class="hamburger-menu-link">
+                        <span>سياسة التشغيل</span>
+                    </a>
+                </li>
+                {% if user.is_authenticated %}
+                <li>
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="hamburger-menu-link" style="background:none;border:0;padding:0;">
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                </li>
+                {% else %}
+                <li>
+                    <a href="{% url 'login' %}" class="hamburger-menu-link">
+                        <span>تسجيل الدخول</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            </div>
+        </div>
+
+    <section id="home" class="hero-section">
+        <div class="background-image-container">
+            <img src="{% static 'images/rrr.jpeg' %}" alt="Background" class="background-image">
+        </div>
+        
+        <nav class="navbar navbar-light">
+            <div class="container">
+                <a class="navbar-brand" href="#home">
+                    <div class="logo-container">
+                        <img src="{% static 'images/logop.png' %}" alt="بروز القمة العقارية" class="brand-logo">
+                    </div>
+                </a>
+                
+                <div class="navbar-left-section">
+                    <button class="hamburger-menu" id="hamburgerMenu" aria-label="القائمة">
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="hero-overlay"></div>
+        <div class="container">
+            <div class="row align-items-center min-vh-100">
+                <div class="col-lg-8 mx-auto text-center">
+                    <div class="hero-content">
+                        <h1 class="hero-title" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="200">بروز القمة العقارية</h1>
+                        <h2 class="hero-tagline" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="400">شريكك الأمثل في النجاح</h2>
+                        <p class="hero-description" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="600">في بروز القمة العقارية... نؤمن أن نجاحنا يقاس بنجاح شركائنا. نسعى لأن نكون اليد التي تُدير، والفريق الذي يُطوّر، والشريك الذي يصنع الفارق في عالم الاستثمار العقاري والترفيهي</p>
+                        <div class="hero-buttons" data-aos="zoom-in" data-aos-duration="1000" data-aos-delay="800">
+                            {% if user.is_authenticated %}
+                            <a href="{% url 'units:dashboard' %}" class="btn-hero btn-hero-primary">
+                                <span>وحدتي</span>
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'units:services' %}" class="btn-hero btn-hero-secondary">
+                                <span>اكتشف خدماتنا</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="about-section py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center mb-5 about-header-content">
+                    <h2 class="section-title" data-aos="fade-down" data-aos-duration="1000">من نحن</h2>
+                    <p class="section-subtitle" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="200">بروز القمة العقارية متخصصة في إدارة وتشغيل العقارات غير السكنية والشقق الفندقية وفق أعلى معايير الكفاءة والجودة</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="container-fluid p-0">
+            <div class="row g-4 m-0 about-cards-container" data-aos="fade-up" data-aos-duration="1200">
+                <video class="about-cards-video" autoplay loop muted playsinline>
+                    <source src="{% static 'images/services-bg.mp4' %}" type="video/mp4">
+                </video>
+                
+                <div class="col-lg-4" data-aos="fade-right" data-aos-duration="1000" data-aos-delay="200">
+                    <div class="about-card">
+                        <div class="about-card-content">
+                            <h4>رؤيتنا</h4>
+                            <p>أن نكون الخيار الأول في تشغيل وإدارة الشاليهات والمنتجعات داخل المملكة، عبر نموذج عمل متكامل يجمع بين الاحترافية التشغيلية والقوة التسويقية</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="400">
+                    <div class="about-card about-card-mission">
+                        <div class="about-card-content">
+                            <h4>رسالتنا</h4>
+                            <p>تمكين المستثمرين من تحقيق أقصى استفادة من عقاراتهم دون عناء المتابعة اليومية، عبر إدارة متكاملة تغطي كافة الجوانب التشغيلية والتسويقية</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4" data-aos="fade-left" data-aos-duration="1000" data-aos-delay="600">
+                    <div class="about-card">
+                        <div class="about-card-content">
+                            <h4>هدفنا</h4>
+                            <p>تحقيق النجاح الأمثل للمستثمرين من خلال إدارة مشاريعهم بكفاءة عالية، مع رفع مستوى العوائد المالية وتقليل عبء الإدارة والمتابعة اليومية</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center mb-5">
+                    <h2 class="section-title" data-aos="fade-down" data-aos-duration="1000">مميزاتنا</h2>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-duration="800" data-aos-delay="100">
+                    <div class="feature-item">
+                        <div class="feature-number">9+</div>
+                        <h5>سنوات خبرة</h5>
+                        <p>خبرة تشغيلية تتجاوز تسعة أعوام في إدارة الشاليهات والمنتجعات</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-duration="800" data-aos-delay="200">
+                    <div class="feature-item">
+                        <div class="feature-number">30000+</div>
+                        <h5>عميل راضي</h5>
+                        <p>قاعدة عملاء واسعة تمتد عبر مختلف منصات التواصل الاجتماعي</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-duration="800" data-aos-delay="300">
+                    <div class="feature-item">
+                        <div class="feature-number">24/7</div>
+                        <h5>خدمة مستمرة</h5>
+                        <p>إدارة مرنة توفر حلولاً كاملة أو جزئية حسب احتياج المستثمر</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-duration="800" data-aos-delay="400">
+                    <div class="feature-item">
+                        <div class="feature-number">100%</div>
+                        <h5>شفافية</h5>
+                        <p>تقارير مالية شهرية دقيقة وشفافة مع توثيق شامل للصيانة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-main py-5">
+            <div class="container">
+                <div class="row g-4" data-aos="fade-up" data-aos-duration="1000">
+                    <div class="col-lg-4 col-md-6">
+                        <div class="footer-section">
+                            <div class="footer-logo mb-4">
+                                <img src="{% static 'images/logop.png' %}" alt="بروز القمة العقارية" class="footer-brand-logo">
+                            </div>
+                            <p class="footer-description">
+                                بروز القمة العقارية - شريكك الموثوق في إدارة وتشغيل العقارات. نسعى لتحقيق أعلى معايير الجودة والكفاءة في خدماتنا.
+                            </p>
+                            <div class="footer-social-links mt-4">
+                                <a href="https://wa.me/966502570316" class="footer-social-link" target="_blank">
+                                    واتساب
+                                </a>
+                                <a href="https://www.instagram.com/brooz.co2017" class="footer-social-link" target="_blank">
+                                    انستقرام
+                                </a>
+                                <a href="https://www.tiktok.com/@brooz.co2017" class="footer-social-link" target="_blank">
+                                    تيك توك
+                                </a>
+                                <a href="https://snapchat.com/t/FwbRGveN" class="footer-social-link" target="_blank">
+                                    سناب شات
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Links -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="footer-section">
+                            <h5 class="footer-heading">روابط سريعة</h5>
+                            <ul class="footer-links">
+                                <li><a href="/">الرئيسية</a></li>
+                                <li><a href="#about">من نحن</a></li>
+                                <li><a href="{% url 'units:services' %}">خدماتنا</a></li>
+                                
+                                <li><a href="{% url 'units:policy' %}">سياسة التشغيل</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Services -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="footer-section">
+                            <h5 class="footer-heading">خدماتنا</h5>
+                            <ul class="footer-links">
+                                <li><a href="{% url 'units:services' %}">إدارة العقارات</a></li>
+                                <li><a href="{% url 'units:services' %}">التسويق العقاري</a></li>
+                                <li><a href="{% url 'units:services' %}">الصيانة والخدمات</a></li>
+                                <li><a href="{% url 'units:services' %}">الإدارة المالية</a></li>
+                                <li><a href="{% url 'units:services' %}">التقارير الشهرية</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Info -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="footer-section">
+                            <h5 class="footer-heading">معلومات التواصل</h5>
+                            <ul class="footer-contact">
+                                <li>
+                                    <a href="tel:+966502570316">+966 50 257 0316</a>
+                                </li>
+                                <li>
+                                    <a href="mailto:brooz.co2017@gmail.com">brooz.co2017@gmail.com</a>
+                                </li>
+                                <li>
+                                    <span>الرياض - السعودية</span>
+                                </li>
+                                <li>
+                                    <span>خدمة 24/7</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer Bottom -->
+        <div class="footer-bottom py-3">
+        <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-6 text-center text-md-end">
+                        <p class="footer-copyright mb-0">
+                            © 2025 بروز القمة العقارية. جميع الحقوق محفوظة
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-center text-md-start">
+                        <div class="footer-bottom-links">
+                            <a href="#privacy">سياسة الخصوصية</a>
+                            <span class="separator">●</span>
+                            <a href="#terms">الشروط والأحكام</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AOS Animation Library -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 1000,
+            easing: 'ease-in-out',
+            once: true,
+            mirror: false,
+            offset: 100,
+        });
+    </script>
+    <script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>
+

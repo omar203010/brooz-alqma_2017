@@ -1,0 +1,166 @@
+{% load custom_tags %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقارير المدفوعات</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .report-header { margin-bottom: 30px; text-align: center; }
+        .report-header h1 { color: #000; margin-bottom: 10px; }
+        .export-buttons { display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
+        .export-btn { background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; text-decoration: none; display: inline-block; transition: all 0.3s; box-shadow: 0 2px 8px rgba(168, 144, 120, 0.3); }
+        .export-btn.excel { background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); }
+        .export-btn:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(168, 144, 120, 0.5); background: linear-gradient(135deg, #8b7765 0%, #a89078 100%); }
+        .totals-box { background: linear-gradient(135deg, rgba(26, 54, 93, 0.1) 0%, rgba(43, 108, 176, 0.05) 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border: 2px solid #1a365d; }
+        .totals-box h3 { color: #000; margin-bottom: 15px; }
+        .totals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .total-item { background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0; }
+        .total-item-label { font-size: 14px; color: #636e72; margin-bottom: 5px; }
+        .total-item-value { font-size: 24px; font-weight: bold; color: #000; }
+        .report-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .report-table th { background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: white; padding: 12px; text-align: center; border: 1px solid #8b7765; }
+        .report-table td { padding: 10px; text-align: center; border: 1px solid #e2e8f0; color: #000; }
+        .report-table tr:nth-child(even) { background: #fefcf8; }
+        .report-table tr:hover { background: linear-gradient(135deg, rgba(168, 144, 120, 0.1) 0%, rgba(139, 119, 101, 0.1) 100%); }
+        .total-row { background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important; font-weight: bold; color: white !important; }
+        .back-link { margin-bottom: 20px; }
+        .back-link a { color: #000; text-decoration: none; transition: all 0.3s; }
+        .back-link a:hover { color: #636e72; }
+        .section-title { margin-top: 30px; margin-bottom: 15px; color: #000; font-size: 18px; padding-bottom: 10px; border-bottom: 2px solid #a89078; }
+    </style>
+</head>
+<body>
+<div class="container">
+<div class="back-link"><a href="/admin/">← العودة للوحة التحكم</a></div>
+
+<div class="report-header">
+    <h1>تقارير المدفوعات</h1>
+    <p>تفصيل شامل للكاش والتحويل مع الإجماليات</p>
+    {% if selected_unit %}
+        <p style="color: #000; font-weight: 600; margin-top: 10px;">الوحدة المحددة: {{ selected_unit.name }}</p>
+    {% endif %}
+    {% if selected_report_type != 'all' and selected_date %}
+        <p style="color: #000; font-weight: 600;">
+            التقرير: 
+            {% if selected_report_type == 'daily' %}يومي{% elif selected_report_type == 'weekly' %}أسبوعي{% elif selected_report_type == 'monthly' %}شهري{% endif %}
+            - {{ selected_date|arabic_date }}
+        </p>
+    {% endif %}
+</div>
+
+<!-- نموذج الفلترة -->
+<form method="get" action="{% url 'units:payment_reports' %}" style="background: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+        <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #000;">الوحدة</label>
+            <select name="unit_id" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+                <option value="all" {% if selected_unit_id == 'all' or not selected_unit_id %}selected{% endif %}>جميع الوحدات</option>
+                {% for unit in all_units %}
+                <option value="{{ unit.id }}" {% if selected_unit_id|stringformat:"s" == unit.id|stringformat:"s" %}selected{% endif %}>{{ unit.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #000;">نوع التقرير</label>
+            <select name="report_type" id="report_type" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+                <option value="all" {% if selected_report_type == 'all' %}selected{% endif %}>الكل</option>
+                <option value="daily" {% if selected_report_type == 'daily' %}selected{% endif %}>يومي</option>
+                <option value="weekly" {% if selected_report_type == 'weekly' %}selected{% endif %}>أسبوعي</option>
+                <option value="monthly" {% if selected_report_type == 'monthly' %}selected{% endif %}>شهري</option>
+            </select>
+        </div>
+        <div id="date_field" style="display: {% if selected_report_type != 'all' %}block{% else %}none{% endif %};">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #000;">التاريخ</label>
+            <input type="date" name="date" value="{{ selected_date }}" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+        </div>
+        <div>
+            <button type="submit" style="width: 100%; padding: 10px 20px; background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: all 0.3s; box-shadow: 0 2px 8px rgba(168, 144, 120, 0.3);">🔍 تطبيق الفلترة</button>
+        </div>
+    </div>
+</form>
+
+<script>
+document.getElementById('report_type').addEventListener('change', function() {
+    const dateField = document.getElementById('date_field');
+    if (this.value !== 'all') {
+        dateField.style.display = 'block';
+    } else {
+        dateField.style.display = 'none';
+    }
+});
+</script>
+
+<div class="export-buttons">
+    <a href="{% url 'units:payment_reports_pdf' %}?unit_id={{ selected_unit_id }}&report_type={{ selected_report_type }}&date={{ selected_date }}" class="export-btn">📄 تصدير PDF</a>
+    <a href="{% url 'units:payment_reports_excel' %}?unit_id={{ selected_unit_id }}&report_type={{ selected_report_type }}&date={{ selected_date }}" class="export-btn excel">📊 تصدير Excel</a>
+</div>
+
+<div class="totals-box">
+    <h3>الإجماليات النهائية</h3>
+    <div class="totals-grid">
+        <div class="total-item">
+            <div class="total-item-label">إجمالي الكاش</div>
+            <div class="total-item-value">{{ total_cash|floatformat:2 }} ر.س</div>
+        </div>
+        <div class="total-item">
+            <div class="total-item-label">إجمالي التحويل</div>
+            <div class="total-item-value">{{ total_transfer|floatformat:2 }} ر.س</div>
+        </div>
+        <div class="total-item">
+            <div class="total-item-label">الإجمالي الكلي</div>
+            <div class="total-item-value">{{ total_all|floatformat:2 }} ر.س</div>
+        </div>
+    </div>
+</div>
+
+{% if cash_bookings %}
+<h2 class="section-title">حجوزات الكاش فقط</h2>
+<table class="report-table">
+    <thead>
+        <tr>
+            <th>الوحدة</th>
+            <th>التاريخ</th>
+            <th>المبلغ الكاش</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for booking in cash_bookings %}
+        <tr>
+            <td>{{ booking.unit.name }}</td>
+            <td>{{ booking.start_date|arabic_date }}</td>
+            <td>{{ booking.cash_amount|floatformat:2 }} ر.س</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if transfer_bookings %}
+<h2 class="section-title">حجوزات التحويل فقط</h2>
+<table class="report-table">
+    <thead>
+        <tr>
+            <th>الوحدة</th>
+            <th>التاريخ</th>
+            <th>المبلغ تحويل</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for booking in transfer_bookings %}
+        <tr>
+            <td>{{ booking.unit.name }}</td>
+            <td>{{ booking.start_date|arabic_date }}</td>
+            <td>{{ booking.transfer_amount|floatformat:2 }} ر.س</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+</div>
+</body>
+</html>
