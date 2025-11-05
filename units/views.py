@@ -180,7 +180,8 @@ def unit_bookings(request, unit_id):
                 'color': '#dc3545',
                 'price': float(booking.price_per_day) if booking.price_per_day is not None else None,
                 'notes': booking.notes or '',
-                'is_owner_booking': booking.is_owner_booking
+                'is_owner_booking': booking.is_owner_booking,
+                'is_user_booking': (request.user.is_authenticated and booking.user_id == request.user.id)
             })
             current_date += timedelta(days=1)
     
@@ -201,11 +202,8 @@ def dashboard(request):
 @require_POST
 @never_cache
 def create_booking(request, unit_id):
-    """إنشاء حجز ليوم واحد لمالك الوحدة فقط"""
+    """إنشاء حجز ليوم واحد للمستخدم المسجل"""
     unit = get_object_or_404(Unit, id=unit_id)
-    # السماح فقط لمالك الوحدة أو الموظف
-    if not (request.user == unit.owner or request.user.is_staff):
-        return JsonResponse({'error': 'غير مصرح'}, status=403)
 
     # قراءة البيانات JSON أو POST
     try:
@@ -234,6 +232,7 @@ def create_booking(request, unit_id):
         start_date=target_date,
         end_date=target_date,
         customer_name=request.user.get_full_name() or request.user.username,
+        user=request.user,
         price_per_day=price if price not in (None, '',) else None,
         notes=notes or '',
         is_owner_booking=True
@@ -244,6 +243,56 @@ def create_booking(request, unit_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+@never_cache
+def cancel_booking(request, unit_id):
+    """إلغاء حجز يوم واحد (صلاحية للمالك أو الموظف)"""
+    unit = get_object_or_404(Unit, id=unit_id)
+    # السماح فقط لمالك الوحدة أو الموظف
+    if not (request.user == unit.owner or request.user.is_staff):
+        return JsonResponse({'error': 'غير مصرح'}, status=403)
+
+    try:
+        payload = json.loads(request.body.decode('utf-8')) if request.content_type == 'application/json' else request.POST
+    except Exception:
+        payload = request.POST
+
+    date_str = payload.get('date')
+    if not date_str:
+        return JsonResponse({'error': 'التاريخ مطلوب'}, status=400)
+
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': 'تنسيق التاريخ غير صحيح'}, status=400)
+
+    # إيجاد الحجز لليوم المحدد
+    booking = Booking.objects.filter(unit=unit, start_date=target_date, end_date=target_date).first()
+    if not booking:
+        return JsonResponse({'error': 'لا يوجد حجز في هذا التاريخ'}, status=404)
+
+    # الصلاحيات: موظف أو مالك الوحدة أو نفس صاحب الحجز (بحقل user أو بالاسم)
+    is_owner = (request.user == unit.owner)
+    is_staff = request.user.is_staff
+    is_booking_owner_by_name = False
+    is_booking_owner_by_user = (booking.user_id == request.user.id) if request.user.is_authenticated else False
+    user_full_name = (request.user.get_full_name() or '').strip()
+    user_username = (request.user.username or '').strip()
+    if booking.customer_name:
+        cn = booking.customer_name.strip()
+        is_booking_owner_by_name = (cn == user_full_name) or (cn == user_username)
+
+    if not (is_staff or is_owner or is_booking_owner_by_user or is_booking_owner_by_name):
+        return JsonResponse({'error': 'غير مصرح لك بإلغاء هذا الحجز'}, status=403)
+
+    try:
+        booking.delete()
+    except Exception as e:
+        return JsonResponse({'error': f'تعذر إلغاء الحجز: {str(e)}'}, status=400)
     return JsonResponse({'ok': True})
 
 

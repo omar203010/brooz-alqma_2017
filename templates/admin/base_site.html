@@ -3,8 +3,113 @@
 
 {% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* تغيير ألوان لوحة التحكم إلى البيج */
+    #header {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important;
+        border-bottom: 2px solid #8b7765 !important;
+    }
+    
+    #header h1, #header h1 a {
+        color: white !important;
+    }
+    
+    #header a:link, #header a:visited {
+        color: white !important;
+    }
+    
+    #header a:hover {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+    
+    .module h2, .module caption, .inline-group h2 {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important;
+        color: white !important;
+    }
+    
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important;
+        border-color: #8b7765 !important;
+        color: white !important;
+    }
+    
+    .button:hover, input[type=submit]:hover, input[type=button]:hover {
+        background: linear-gradient(135deg, #8b7765 0%, #a89078 100%) !important;
+        color: white !important;
+    }
+    
+    .object-tools a {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important;
+        color: white !important;
+        border-color: #8b7765 !important;
+    }
+    
+    .object-tools a:hover {
+        background: linear-gradient(135deg, #8b7765 0%, #a89078 100%) !important;
+        color: white !important;
+    }
+    
+    .changelink, .addlink {
+        color: #a89078 !important;
+    }
+    
+    .changelink:hover, .addlink:hover {
+        color: #8b7765 !important;
+    }
+    
+    #changelist-filter li.selected a {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important;
+        color: white !important;
+    }
+    
+    #changelist-filter li.selected a:hover {
+        background: linear-gradient(135deg, #8b7765 0%, #a89078 100%) !important;
+    }
+    
+    #changelist-filter a:hover {
+        background: rgba(168, 144, 120, 0.1) !important;
+    }
+    
+    .selected a {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important;
+        color: white !important;
+    }
+    
+    #result_list thead th {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important;
+        color: white !important;
+    }
+    
+    #result_list tbody tr:hover {
+        background: rgba(168, 144, 120, 0.1) !important;
+    }
+    
+    .paginator a:link, .paginator a:visited {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important;
+        color: white !important;
+        border-color: #8b7765 !important;
+    }
+    
+    .paginator a:hover {
+        background: linear-gradient(135deg, #8b7765 0%, #a89078 100%) !important;
+        color: white !important;
+    }
+</style>
+{% endblock %}
+
 {% block branding %}
 <h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
 {% endblock %}
 
-{% block nav-global %}{% endblock %}
+{% block nav-global %}
+<div style="margin: 10px 0;">
+    <a href="{% url 'units:payment_reports' %}"
+       class="button"
+       style="padding: 10px 14px; font-weight: 600; background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important; border-color: #8b7765 !important; color: white !important; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 8px;">
+        تقارير المدفوعات
+    </a>
+  </div>
+{% endblock %}
+

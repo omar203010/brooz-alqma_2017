@@ -46,6 +46,14 @@ def arabic_date(date_obj):
     
     return f"{weekday_name} {day} {month} {year}"
 
+
+    weekday_name = weekdays_arabic[weekday_num]
+    day = date_obj.day
+    month = months_arabic[date_obj.month]
+    year = date_obj.year
+    
+    return f"{weekday_name} {day} {month} {year}"
+
 from datetime import datetime
 
 register = template.Library()
@@ -76,4 +84,5 @@ def arabic_date(date_obj):
     year = date_obj.year
     
     return f"{day} {month} {year}"
+
 

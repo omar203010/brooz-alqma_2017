@@ -1,0 +1,97 @@
+{% extends "admin/change_list.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .visit-stats-box {
+        background: linear-gradient(135deg, #a89078 0%, #8b7765 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(168, 144, 120, 0.3);
+    }
+    
+    .visit-stats-box h3 {
+        color: white;
+        margin-bottom: 15px;
+        font-size: 20px;
+    }
+    
+    .user-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .user-stat-card {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .user-stat-card strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+    
+    .user-stat-card .visit-count {
+        font-size: 28px;
+        font-weight: bold;
+        margin-top: 10px;
+        color: white;
+    }
+    
+    .selected-user-box {
+        background: rgba(255, 255, 255, 0.25);
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+    
+    .selected-user-box .count {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if selected_user %}
+<div class="visit-stats-box">
+    <h3>📊 إحصائيات المستخدم المحدد</h3>
+    <div class="selected-user-box">
+        <strong>المستخدم: {{ selected_user.username }}</strong>
+        {% if selected_user.email %}<div style="opacity: 0.9; margin-top: 5px;">{{ selected_user.email }}</div>{% endif %}
+        <div class="count">{{ user_visit_count|default:0 }}</div>
+        <div style="opacity: 0.9;">إجمالي عدد الزيارات</div>
+    </div>
+</div>
+{% endif %}
+
+{% if user_stats %}
+<div class="visit-stats-box">
+    <h3>📈 إحصائيات جميع المستخدمين</h3>
+    <div class="user-stats-grid">
+        {% for stat in user_stats %}
+        <div class="user-stat-card">
+            <strong>{{ stat.user__username }}</strong>
+            {% if stat.user__email %}<small style="opacity: 0.8;">{{ stat.user__email }}</small>{% endif %}
+            <div class="visit-count">{{ stat.total_visits }}</div>
+            <div style="opacity: 0.9; font-size: 12px;">زيارة</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}
+
+

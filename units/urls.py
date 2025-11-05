@@ -11,6 +11,7 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('api/unit/<int:unit_id>/bookings/', views.unit_bookings, name='unit_bookings'),
     path('api/unit/<int:unit_id>/bookings/create/', views.create_booking, name='create_booking'),
+    path('api/unit/<int:unit_id>/bookings/cancel/', views.cancel_booking, name='cancel_booking'),
     # admin reports
     path('reports/payment-reports/', views.payment_reports, name='payment_reports'),
     path('reports/payment-reports/pdf/', views.payment_reports_pdf, name='payment_reports_pdf'),

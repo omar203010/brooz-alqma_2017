@@ -7,8 +7,9 @@
     <title>تقارير المدفوعات</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        html, body { height: 100%; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; overflow-x: hidden; }
+        .container { max-width: 1400px; width: 100%; margin: 0 auto; background: white; padding: 20px 16px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .report-header { margin-bottom: 30px; text-align: center; }
         .report-header h1 { color: #000; margin-bottom: 10px; }
         .export-buttons { display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
@@ -21,7 +22,8 @@
         .total-item { background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0; }
         .total-item-label { font-size: 14px; color: #636e72; margin-bottom: 5px; }
         .total-item-value { font-size: 24px; font-weight: bold; color: #000; }
-        .report-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .report-table { width: 100%; border-collapse: collapse; margin: 20px 0; overflow-x: auto; display: block; }
+        .report-table table { width: 100%; }
         .report-table th { background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: white; padding: 12px; text-align: center; border: 1px solid #8b7765; }
         .report-table td { padding: 10px; text-align: center; border: 1px solid #e2e8f0; color: #000; }
         .report-table tr:nth-child(even) { background: #fefcf8; }
@@ -31,6 +33,20 @@
         .back-link a { color: #000; text-decoration: none; transition: all 0.3s; }
         .back-link a:hover { color: #636e72; }
         .section-title { margin-top: 30px; margin-bottom: 15px; color: #000; font-size: 18px; padding-bottom: 10px; border-bottom: 2px solid #a89078; }
+        /* حاوية التاريخ مع زر مسح */
+        .date-input-wrap { position: relative; display: flex; align-items: center; gap: 8px; }
+        .date-clear-btn { appearance: none; -webkit-appearance: none; border: 1px solid #e2e8f0; background: #fff; color: #555; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+        .date-clear-btn:hover { background: #f3f4f6; }
+
+        /* تحسينات الاستجابة للجوال */
+        @media (max-width: 640px) {
+            .container { padding: 16px 12px; border-radius: 8px; }
+            .totals-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .report-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        }
     </style>
 </head>
 <body>
@@ -75,7 +91,10 @@
         </div>
         <div id="date_field" style="display: {% if selected_report_type != 'all' %}block{% else %}none{% endif %};">
             <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #000;">التاريخ</label>
-            <input type="date" name="date" value="{{ selected_date }}" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+            <div class="date-input-wrap">
+                <input id="date_input" type="date" name="date" value="{{ selected_date }}" style="flex: 1; min-width: 0; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+                <button type="button" id="date_clear" class="date-clear-btn" title="مسح" aria-label="مسح">✖</button>
+            </div>
         </div>
         <div>
             <button type="submit" style="width: 100%; padding: 10px 20px; background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: all 0.3s; box-shadow: 0 2px 8px rgba(168, 144, 120, 0.3);">🔍 تطبيق الفلترة</button>
@@ -92,6 +111,18 @@ document.getElementById('report_type').addEventListener('change', function() {
         dateField.style.display = 'none';
     }
 });
+
+// زر مسح التاريخ (بديل لعلامة X إذا لم تعمل في بعض المتصفحات)
+const clearBtn = document.getElementById('date_clear');
+const dateInput = document.getElementById('date_input');
+if (clearBtn && dateInput) {
+    clearBtn.addEventListener('click', function() {
+        dateInput.value = '';
+        // تأكد أن التغيير يُحتسب في الفلترة
+        const ev = new Event('change', { bubbles: true });
+        dateInput.dispatchEvent(ev);
+    });
+}
 </script>
 
 <div class="export-buttons">
@@ -164,3 +195,4 @@ document.getElementById('report_type').addEventListener('change', function() {
 </div>
 </body>
 </html>
+

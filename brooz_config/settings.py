@@ -48,6 +48,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'units.middleware.VisitTrackingMiddleware',  # تتبع الزيارات
 ]
 
 ROOT_URLCONF = 'brooz_config.urls'
@@ -63,6 +64,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
+                'units.context_processors.visit_stats',  # إحصائيات الزيارات
             ],
         },
     },

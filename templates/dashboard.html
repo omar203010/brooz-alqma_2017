@@ -21,7 +21,7 @@
             </a>
             <div class="navbar-left-section">
                 <a href="/" class="me-3">الرئيسية</a>
-                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                <form action="{% url 'units:logout' %}" method="post" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-danger btn-sm">تسجيل الخروج</button>
                 </form>

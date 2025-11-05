@@ -73,6 +73,14 @@ class Booking(models.Model):
         related_name='bookings',
         verbose_name="الوحدة"
     )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='unit_bookings',
+        verbose_name='المستخدم',
+        null=True,
+        blank=True
+    )
     start_date = models.DateField(verbose_name="تاريخ البداية")
     end_date = models.DateField(verbose_name="تاريخ النهاية")
     customer_name = models.CharField(
@@ -208,3 +216,61 @@ class Contract(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Visit(models.Model):
+    """نموذج لتتبع زيارات المستخدمين للموقع"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='visits',
+        verbose_name='المستخدم',
+        null=True,
+        blank=True
+    )
+    session_key = models.CharField(
+        max_length=40,
+        verbose_name='مفتاح الجلسة',
+        null=True,
+        blank=True,
+        db_index=True
+    )
+    ip_address = models.GenericIPAddressField(
+        verbose_name='عنوان IP',
+        null=True,
+        blank=True
+    )
+    user_agent = models.TextField(
+        verbose_name='متصفح المستخدم',
+        blank=True,
+        null=True
+    )
+    path = models.CharField(
+        max_length=500,
+        verbose_name='مسار الصفحة',
+        blank=True
+    )
+    referer = models.URLField(
+        verbose_name='الصفحة المرجعية',
+        blank=True,
+        null=True
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='تاريخ الزيارة',
+        db_index=True
+    )
+
+    class Meta:
+        verbose_name = 'زيارة'
+        verbose_name_plural = 'الزيارات'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def __str__(self):
+        if self.user:
+            return f'{self.user.username} - {self.created_at.strftime("%Y-%m-%d %H:%M")}'
+        return f'زائر غير مسجل - {self.created_at.strftime("%Y-%m-%d %H:%M")}'

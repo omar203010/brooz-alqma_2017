@@ -42,7 +42,7 @@
                 </li>
                 {% if user.is_authenticated %}
                 <li>
-                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                    <form action="{% url 'units:logout' %}" method="post" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" class="hamburger-menu-link" style="background:none;border:0;padding:0;">
                             <span>تسجيل الخروج</span>
@@ -51,7 +51,7 @@
                 </li>
                 {% else %}
                 <li>
-                    <a href="{% url 'login' %}" class="hamburger-menu-link">
+                    <a href="{% url 'units:login' %}" class="hamburger-menu-link">
                         <span>تسجيل الدخول</span>
                     </a>
                 </li>
