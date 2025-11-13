@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse, HttpResponse
-from .models import Unit, Booking, Report, Contract
+from .models import Unit, Booking, Report, Contract, Expense, UnitPricing
 from datetime import datetime, timedelta
 from django.views.decorators.cache import never_cache
 from django.contrib.auth import authenticate, login, logout
@@ -151,13 +151,15 @@ def policy(request):
 @never_cache
 def units(request):
     """عرض صفحة الوحدات (للمسجّلين فقط)"""
-    units_qs = Unit.objects.filter(owner=request.user)
+    units_qs = Unit.objects.filter(owner=request.user).prefetch_related('gallery_images')
     reports = Report.objects.filter(owner=request.user)[:20]
     contracts = Contract.objects.filter(owner=request.user)[:20]
+    expenses = Expense.objects.filter(owner=request.user).select_related('unit')[:20]
     response = render(request, 'units.html', {
         'units': units_qs,
         'reports': reports,
         'contracts': contracts,
+        'expenses': expenses,
     })
     response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     response['Pragma'] = 'no-cache'
@@ -916,4 +918,103 @@ def payment_reports_excel(request):
     
     response = HttpResponse(buffer.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="payment_reports_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+    return response
+
+
+@login_required
+@never_cache
+def unit_expenses(request, unit_id):
+    """عرض مصروفات وحدة معينة"""
+    unit = get_object_or_404(Unit, id=unit_id, owner=request.user)
+    expenses = Expense.objects.filter(unit=unit, owner=request.user).order_by('-created_at')
+    
+    # حساب الإجمالي
+    total_expenses = expenses.aggregate(Sum('price'))['price__sum'] or 0
+    
+    context = {
+        'unit': unit,
+        'expenses': expenses,
+        'total_expenses': total_expenses,
+    }
+    
+    response = render(request, 'unit_expenses.html', context)
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    return response
+
+
+@login_required
+@never_cache
+def expense_detail(request, expense_id):
+    """عرض تفاصيل مصروف معين مع الفاتورة"""
+    expense = get_object_or_404(Expense, id=expense_id, owner=request.user)
+    
+    context = {
+        'expense': expense,
+    }
+    
+    response = render(request, 'expense_detail.html', context)
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    return response
+
+
+@login_required
+@never_cache
+def unit_pricing(request, unit_id):
+    """عرض أسعار تأجير وحدة معينة"""
+    unit = get_object_or_404(Unit, id=unit_id, owner=request.user)
+    
+    # جلب جميع أسعار الوحدة
+    pricing_list = UnitPricing.objects.filter(unit=unit).order_by('day_of_week')
+    
+    # إنشاء قائمة بجميع أيام الأسبوع مع أسعارها
+    weekdays_info = [
+        (0, 'الإثنين'),
+        (1, 'الثلاثاء'),
+        (2, 'الأربعاء'),
+        (3, 'الخميس'),
+        (4, 'الجمعة'),
+        (5, 'السبت'),
+        (6, 'الأحد'),
+    ]
+    
+    pricing_data = []
+    pricing_dict = {p.day_of_week: p for p in pricing_list}
+    
+    for day_num, day_name in weekdays_info:
+        pricing_obj = pricing_dict.get(day_num)
+        pricing_data.append({
+            'day_num': day_num,
+            'day_name': day_name,
+            'price': pricing_obj.price if pricing_obj else None,
+            'exists': pricing_obj is not None
+        })
+    
+    context = {
+        'unit': unit,
+        'pricing_data': pricing_data,
+    }
+    
+    response = render(request, 'unit_pricing.html', context)
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    return response
+
+
+@login_required
+@never_cache
+def unit_gallery(request, unit_id):
+    """عرض صور وحدة معينة"""
+    unit = get_object_or_404(Unit, id=unit_id, owner=request.user)
+    images = unit.gallery_images.all()
+    
+    context = {
+        'unit': unit,
+        'images': images,
+    }
+    
+    response = render(request, 'unit_gallery.html', context)
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
     return response

@@ -19,5 +19,12 @@ urlpatterns = [
     # auth
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    # expenses
+    path('unit/<int:unit_id>/expenses/', views.unit_expenses, name='unit_expenses'),
+    path('expense/<int:expense_id>/', views.expense_detail, name='expense_detail'),
+    # pricing
+    path('unit/<int:unit_id>/pricing/', views.unit_pricing, name='unit_pricing'),
+    # gallery
+    path('unit/<int:unit_id>/gallery/', views.unit_gallery, name='unit_gallery'),
 ]
 

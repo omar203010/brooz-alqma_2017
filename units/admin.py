@@ -1,8 +1,24 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Unit, Booking, Report, Contract, UserProfile, Visit
+from .models import Unit, Booking, Report, Contract, UserProfile, Visit, Expense, UnitPricing, UnitImage
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+
+class UnitImageInline(admin.TabularInline):
+    model = UnitImage
+    extra = 1
+    fields = ('image', 'title', 'description', 'is_featured', 'image_preview')
+    readonly_fields = ('image_preview',)
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width: 120px; border-radius: 6px;" />',
+                obj.image.url
+            )
+        return '—'
+    image_preview.short_description = 'معاينة'
+
 
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):
@@ -12,6 +28,7 @@ class UnitAdmin(admin.ModelAdmin):
     list_filter = ['is_available', 'created_at', 'owner']
     search_fields = ['name', 'owner__username', 'owner__email']
     readonly_fields = ['created_at', 'updated_at']
+    inlines = [UnitImageInline]
     
     fieldsets = (
         ('المعلومات الأساسية', {
@@ -389,3 +406,234 @@ admin.site.register(User, CustomUserAdmin)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'phone_number']
     search_fields = ['user__username', 'user__email', 'phone_number']
+
+
+@admin.register(Expense)
+class ExpenseAdmin(admin.ModelAdmin):
+    """إدارة المصروفات في لوحة التحكم"""
+    
+    list_display = ['unit', 'category_display', 'price', 'invoice_link', 'created_at', 'owner']
+    list_filter = ['category', 'unit', 'created_at', 'owner']
+    search_fields = ['unit__name', 'description', 'owner__username']
+    date_hierarchy = 'created_at'
+    readonly_fields = ['created_at', 'invoice_preview']
+    
+    def get_fieldsets(self, request, obj=None):
+        """تخصيص الحقول حسب نوع المستخدم"""
+        if request.user.is_staff:
+            # Staff يرى جميع الحقول
+            return (
+                ('المعلومات الأساسية', {
+                    'fields': ('unit', 'owner', 'category')
+                }),
+                ('تفاصيل المصروف', {
+                    'fields': ('price', 'description', 'invoice')
+                }),
+                ('معلومات إضافية', {
+                    'fields': ('created_at', 'invoice_preview'),
+                    'classes': ('collapse',)
+                }),
+            )
+        else:
+            # المستخدمون العاديون لا يرون حقل المالك (سيتم تعيينه تلقائياً)
+            return (
+                ('المعلومات الأساسية', {
+                    'fields': ('unit', 'category')
+                }),
+                ('تفاصيل المصروف', {
+                    'fields': ('price', 'description', 'invoice')
+                }),
+                ('معلومات إضافية', {
+                    'fields': ('created_at', 'invoice_preview'),
+                    'classes': ('collapse',)
+                }),
+            )
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """تخصيص النموذج لتعيين الوحدة تلقائياً من URL"""
+        form = super().get_form(request, obj, **kwargs)
+        return form
+    
+    def get_changeform_initial_data(self, request):
+        """تعيين البيانات الأولية للنموذج عند إضافة مصروف جديد"""
+        initial = super().get_changeform_initial_data(request)
+        unit_id = request.GET.get('unit')
+        
+        if unit_id:
+            try:
+                unit = Unit.objects.get(id=unit_id)
+                # التحقق من أن المستخدم يملك هذه الوحدة (إذا لم يكن staff)
+                if not request.user.is_staff:
+                    user_units = Unit.objects.filter(owner=request.user)
+                    if unit in user_units:
+                        initial['unit'] = unit
+                    elif user_units.exists():
+                        initial['unit'] = user_units.first()
+                else:
+                    # Staff يمكنه اختيار أي وحدة
+                    initial['unit'] = unit
+            except Unit.DoesNotExist:
+                pass
+        
+        # تعيين المالك تلقائياً للمستخدمين العاديين
+        if not request.user.is_staff:
+            initial['owner'] = request.user
+        
+        return initial
+    
+    def category_display(self, obj):
+        """عرض الفئة بالعربية"""
+        return obj.get_category_display_ar()
+    category_display.short_description = 'الفئة'
+    
+    def invoice_link(self, obj):
+        """عرض رابط الفاتورة"""
+        if obj.invoice:
+            return format_html(
+                '<a href="{}" target="_blank" style="color: #007bff;">عرض الفاتورة</a>',
+                obj.invoice.url
+            )
+        return "لا توجد فاتورة"
+    invoice_link.short_description = 'الفاتورة'
+    
+    def invoice_preview(self, obj):
+        """معاينة الفاتورة في لوحة التحكم"""
+        if obj.invoice:
+            # إذا كانت صورة
+            if obj.invoice.name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                return format_html(
+                    '<img src="{}" style="max-width: 300px; max-height: 300px; '
+                    'border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />',
+                    obj.invoice.url
+                )
+            # إذا كانت PDF أو ملف آخر
+            return format_html(
+                '<a href="{}" target="_blank" style="color: #007bff; font-weight: bold;">'
+                'عرض الفاتورة ({})</a>',
+                obj.invoice.url,
+                obj.invoice.name.split('/')[-1]
+            )
+        return "لا توجد فاتورة"
+    invoice_preview.short_description = 'معاينة الفاتورة'
+    
+    def save_model(self, request, obj, form, change):
+        """حفظ المصروف مع تعيين المالك تلقائياً إذا لم يكن موجوداً"""
+        if not obj.owner_id:
+            obj.owner = request.user
+        super().save_model(request, obj, form, change)
+    
+    def get_queryset(self, request):
+        """تصفية المصروفات حسب المستخدم إذا لم يكن staff"""
+        qs = super().get_queryset(request)
+        if not request.user.is_staff:
+            # المستخدمون العاديون يرون فقط مصروفاتهم
+            qs = qs.filter(owner=request.user)
+        return qs
+    
+    def has_add_permission(self, request):
+        """السماح بإضافة المصروفات فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def has_change_permission(self, request, obj=None):
+        """السماح بتعديل المصروفات فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def has_delete_permission(self, request, obj=None):
+        """السماح بحذف المصروفات فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """تصفية الوحدات حسب المالك"""
+        if db_field.name == "unit" and not request.user.is_staff:
+            # المستخدمون العاديون يرون فقط وحداتهم (لكن لن يتمكنوا من الإضافة)
+            kwargs["queryset"] = Unit.objects.filter(owner=request.user)
+        elif db_field.name == "owner" and not request.user.is_staff:
+            # المستخدمون العاديون لا يمكنهم اختيار مالك آخر
+            kwargs["queryset"] = type(request.user).objects.filter(id=request.user.id)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+@admin.register(UnitPricing)
+class UnitPricingAdmin(admin.ModelAdmin):
+    """إدارة أسعار الوحدات في لوحة التحكم"""
+    
+    list_display = ['unit', 'day_display', 'price', 'updated_at']
+    list_filter = ['unit', 'day_of_week', 'updated_at']
+    search_fields = ['unit__name']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('المعلومات الأساسية', {
+            'fields': ('unit', 'day_of_week', 'price')
+        }),
+        ('معلومات إضافية', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def day_display(self, obj):
+        """عرض اليوم بالعربية"""
+        return obj.get_day_of_week_display_ar()
+    day_display.short_description = 'يوم الأسبوع'
+    
+    def has_add_permission(self, request):
+        """السماح بإضافة الأسعار فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def has_change_permission(self, request, obj=None):
+        """السماح بتعديل الأسعار فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def has_delete_permission(self, request, obj=None):
+        """السماح بحذف الأسعار فقط للمديرين (staff)"""
+        return request.user.is_staff
+
+
+@admin.register(UnitImage)
+class UnitImageAdmin(admin.ModelAdmin):
+    """إدارة صور الوحدات"""
+    
+    list_display = ['unit', 'title', 'is_featured', 'preview', 'created_at']
+    list_filter = ['unit', 'is_featured', 'created_at']
+    search_fields = ['unit__name', 'title']
+    readonly_fields = ['created_at', 'image_preview']
+    
+    fieldsets = (
+        ('المعلومات الأساسية', {
+            'fields': ('unit', 'image', 'title', 'description', 'is_featured')
+        }),
+        ('معلومات إضافية', {
+            'fields': ('image_preview', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def preview(self, obj):
+        """عرض مصغر للصورة في قائمة admin"""
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height: 60px; border-radius: 6px;" />',
+                obj.image.url
+            )
+        return 'لا توجد صورة'
+    preview.short_description = 'معاينة'
+    
+    def image_preview(self, obj):
+        """عرض معاينة أكبر للصورة داخل الصفحة"""
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width: 300px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />',
+                obj.image.url
+            )
+        return 'لا توجد صورة'
+    image_preview.short_description = 'معاينة الصورة'
+    
+    def has_add_permission(self, request):
+        return request.user.is_staff
+    
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
+    
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_staff

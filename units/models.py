@@ -274,3 +274,173 @@ class Visit(models.Model):
         if self.user:
             return f'{self.user.username} - {self.created_at.strftime("%Y-%m-%d %H:%M")}'
         return f'زائر غير مسجل - {self.created_at.strftime("%Y-%m-%d %H:%M")}'
+
+
+class Expense(models.Model):
+    """نموذج المصروفات للوحدات"""
+    
+    EXPENSE_CATEGORIES = [
+        ('purchases_maintenance', 'مشتريات وصيانة'),
+        ('cleaning_supplies', 'مواد نظافة'),
+        ('chlorine', 'كلور'),
+        ('electricity', 'كهرباء'),
+        ('plumbing', 'سباكة'),
+        ('swimming_pools', 'مسابح'),
+        ('cooling', 'تبريد'),
+        ('landscaping', 'زراعة وتشجير'),
+        ('mattress_upholstery', 'تنجيد مراتب'),
+        ('blacksmithing', 'حدادة'),
+        ('carpentry', 'نجارة'),
+        ('aluminum', 'ألمنيوم'),
+        ('shared', 'مشتركة'),
+        ('other', 'أخرى'),
+    ]
+    
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name='expenses',
+        verbose_name="الوحدة"
+    )
+    category = models.CharField(
+        max_length=50,
+        choices=EXPENSE_CATEGORIES,
+        verbose_name="فئة المصروف",
+        blank=True,
+        null=True
+    )
+    invoice = models.FileField(
+        upload_to='expenses/invoices/',
+        verbose_name="الفاتورة",
+        blank=True,
+        null=True
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="السعر",
+        default=0
+    )
+    description = models.TextField(
+        verbose_name="الوصف",
+        blank=True,
+        null=True
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاريخ الإضافة"
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='expenses',
+        verbose_name="المالك"
+    )
+    
+    class Meta:
+        verbose_name = "مصروف"
+        verbose_name_plural = "المصروفات"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        category_display = self.get_category_display() if self.category else 'بدون فئة'
+        return f"{self.unit.name} - {category_display} - {self.price} ر.س"
+    
+    def get_category_display_ar(self):
+        """الحصول على اسم الفئة بالعربية"""
+        if self.category:
+            return dict(self.EXPENSE_CATEGORIES).get(self.category, self.category)
+        return 'بدون فئة'
+
+
+class UnitPricing(models.Model):
+    """نموذج أسعار تأجير الوحدات حسب أيام الأسبوع"""
+    
+    WEEKDAYS = [
+        (0, 'الإثنين'),
+        (1, 'الثلاثاء'),
+        (2, 'الأربعاء'),
+        (3, 'الخميس'),
+        (4, 'الجمعة'),
+        (5, 'السبت'),
+        (6, 'الأحد'),
+    ]
+    
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name='pricing',
+        verbose_name="الوحدة"
+    )
+    day_of_week = models.IntegerField(
+        choices=WEEKDAYS,
+        verbose_name="يوم الأسبوع"
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="سعر التأجير",
+        default=0
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاريخ الإضافة"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="تاريخ التحديث"
+    )
+    
+    class Meta:
+        verbose_name = "سعر الوحدة"
+        verbose_name_plural = "أسعار الوحدات"
+        unique_together = ['unit', 'day_of_week']
+        ordering = ['unit', 'day_of_week']
+    
+    def __str__(self):
+        return f"{self.unit.name} - {self.get_day_of_week_display()} - {self.price} ر.س"
+    
+    def get_day_of_week_display_ar(self):
+        """الحصول على اسم اليوم بالعربية"""
+        return dict(self.WEEKDAYS).get(self.day_of_week, '')
+
+
+class UnitImage(models.Model):
+    """صور إضافية للوحدة تظهر للمستخدم"""
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name='gallery_images',
+        verbose_name='الوحدة'
+    )
+    image = models.ImageField(
+        upload_to='units/gallery/',
+        verbose_name='الصورة'
+    )
+    title = models.CharField(
+        max_length=255,
+        verbose_name='عنوان الصورة',
+        blank=True,
+        null=True
+    )
+    description = models.TextField(
+        verbose_name='وصف الصورة',
+        blank=True,
+        null=True
+    )
+    is_featured = models.BooleanField(
+        default=False,
+        verbose_name='صورة مميزة'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='تاريخ الإضافة'
+    )
+    
+    class Meta:
+        verbose_name = 'صورة وحدة'
+        verbose_name_plural = 'صور الوحدات'
+        ordering = ['-is_featured', '-created_at']
+    
+    def __str__(self):
+        return self.title or f'صورة - {self.unit.name}'

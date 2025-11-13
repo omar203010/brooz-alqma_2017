@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>مصروفات {{ unit.name }} - بروز القمة العقارية</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    {% load static %}
+    {% load custom_tags %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .expense-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .expense-card:hover {
+            box-shadow: 0 4px 12px rgba(168, 144, 120, 0.3);
+            transform: translateY(-2px);
+        }
+        .invoice-badge {
+            background: linear-gradient(135deg, #a89078 0%, #8b7765 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .total-card {
+            background: linear-gradient(135deg, rgba(168, 144, 120, 0.1) 0%, rgba(139, 119, 101, 0.1) 100%);
+            border: 2px solid #a89078;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .category-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #f0f0f0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-light" style="background: linear-gradient(135deg, rgba(45, 52, 54, 0.98) 0%, rgba(99, 110, 114, 0.95) 30%, rgba(139, 119, 101, 0.95) 70%, rgba(168, 144, 120, 0.98) 100%);">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'units:units' %}">
+                <div class="logo-container">
+                    <img src="{% static 'images/logop.png' %}" alt="بروز القمة العقارية" class="brand-logo">
+                </div>
+            </a>
+            <div class="navbar-left-section">
+                <a href="{% url 'units:units' %}" class="btn" style="background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3);">
+                    <i class="fas fa-arrow-right"></i> العودة للوحدات
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <section class="py-5" style="min-height: 80vh; background: linear-gradient(135deg, rgba(248, 246, 243, 0.5) 0%, rgba(255, 255, 255, 0.8) 100%);">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2 class="text-center mb-3" data-aos="fade-up">مصروفات {{ unit.name }}</h2>
+                    <div class="total-card" data-aos="fade-up" data-aos-delay="100">
+                        <h4 class="mb-2">إجمالي المصروفات</h4>
+                        <h3 style="color: #a89078; font-weight: bold;">{{ total_expenses|floatformat:2 }} ر.س</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    {% if expenses %}
+                    {% for expense in expenses %}
+                    <div class="expense-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|mul:50 }}" 
+                         onclick="window.location.href='{% url 'units:expense_detail' expense.id %}'">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <h5 class="mb-2">{{ expense.get_category_display_ar }}</h5>
+                                <span class="category-badge">{{ expense.get_category_display_ar }}</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong style="color: #a89078; font-size: 1.2em;">{{ expense.price|floatformat:2 }} ر.س</strong>
+                            </div>
+                            <div class="col-md-4">
+                                {% if expense.description %}
+                                <p class="text-muted mb-0" style="font-size: 0.9em;">{{ expense.description|truncatewords:10 }}</p>
+                                {% else %}
+                                <p class="text-muted mb-0">لا يوجد وصف</p>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2 text-end">
+                                {% if expense.invoice %}
+                                <span class="invoice-badge">
+                                    <i class="fas fa-file-invoice"></i> فاتورة
+                                </span>
+                                {% else %}
+                                <span class="text-muted">لا توجد فاتورة</span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">{{ expense.created_at|date:"Y-m-d" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-receipt" style="font-size: 4em; color: #ccc; margin-bottom: 20px;"></i>
+                        <p class="text-muted">لا توجد مصروفات مسجلة لهذه الوحدة</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-bottom py-3">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-12 text-center">
+                        <p class="footer-copyright mb-0">
+                            © 2025 بروز القمة العقارية. جميع الحقوق محفوظة
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 1000,
+            easing: 'ease-in-out',
+            once: true,
+            mirror: false,
+        });
+    </script>
+</body>
+</html>
+
