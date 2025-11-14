@@ -116,16 +116,25 @@
     <!-- Units Section (Centered, no tabs) -->
     <section id="units" class="units-section py-5">
         <div class="container">
-            <!-- Quick action cards: Bookings, Reports, Contracts -->
+            <!-- Quick action cards: Total Saved, Bookings, Reports, Contracts -->
             <div class="row g-4 justify-content-center mb-4">
+                <!-- Total Saved Card -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="unit-card" style="cursor: default;">
+                        <div class="unit-content text-center">
+                            <h5 style="margin-bottom: 15px;"><i class="fas fa-wallet" style="color: #a89078;"></i> إجمالي المحفظة</h5>
+                            <div id="bookingTotalCard" style="background: linear-gradient(135deg, rgba(168, 144, 120, 0.12) 0%, rgba(139, 119, 101, 0.12) 100%); border: 2px solid rgba(168, 144, 120, 0.3); border-radius: 12px; padding: 20px; margin-top: 10px;">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: #a89078; margin-bottom: 5px;">
+                                    <span id="bookingTotalAmount">0</span> <span style="font-size: 1.2rem;">ر.س</span>
+                                </div>
+                                <small style="color: #8b7765; font-weight: 600;">إجمالي المحفظة بعد خصم المصاريف التشغيلية</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Bookings Card -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="unit-card" style="cursor: default; position: relative;">
-                        <!-- Badge: إجمالي الحجوزات بالـ SR داخل كارد الحجوزات أعلى اليسار -->
-                        <span id="bookingTotalBadge" title="إجمالي الحجوزات"
-                              style="position:absolute; top:10px; left:10px; display:inline-flex; align-items:center; justify-content:center; padding:6px 10px; background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color:#fff; border-radius:999px; font-weight:700; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.15); min-width:66px; z-index:2;">
-                            0 SR
-                        </span>
+                <div class="col-lg-3 col-md-6">
+                    <div class="unit-card" style="cursor: default;">
                         <div class="unit-content">
                             <h5>الحجوزات</h5>
                             {% if units %}
@@ -145,7 +154,7 @@
                     </div>
                 </div>
                 <!-- Reports Card -->
-                <div class="col-lg-4 col-md-6">
+                <div class="col-lg-3 col-md-6">
                     <div class="unit-card" style="cursor: default;">
                         <div class="unit-content">
                             <h5>التقارير (PDF)</h5>
@@ -168,7 +177,7 @@
                     </div>
                 </div>
                 <!-- Contracts Card -->
-                <div class="col-lg-4 col-md-6">
+                <div class="col-lg-3 col-md-6">
                     <div class="unit-card" style="cursor: default;">
                         <div class="unit-content">
                             <h5>العقود (PDF)</h5>
@@ -409,7 +418,7 @@
             let currentDisplayYear = new Date().getFullYear();
             let calendarEvents = [];
             let isMobile = window.innerWidth <= 576;
-            const totalBadge = document.getElementById('bookingTotalBadge');
+            const totalAmountElement = document.getElementById('bookingTotalAmount');
             let isOwnerForCurrentUnit = false;
             
             unitCards.forEach(card => {
@@ -429,7 +438,7 @@
                     fetch(`/api/unit/${unitId}/bookings/`)
                         .then(response => response.json())
                         .then(data => {
-                            displayCalendar(data.events);
+                            displayCalendar(data);
                             modal.show();
                         })
                         .catch(error => {
@@ -443,6 +452,26 @@
             const openCalendarBtn = document.getElementById('openCalendarBtn');
             const bookingUnitSelect = document.getElementById('bookingUnitSelect');
             if (openCalendarBtn && bookingUnitSelect) {
+                // تحديث أولي لإجمالي المحفوظة عند تحميل الصفحة
+                const initialUnitId = bookingUnitSelect.value;
+                if (initialUnitId) {
+                    fetch(`/api/unit/${initialUnitId}/bookings/`)
+                        .then(r => r.json())
+                        .then(d => { updateBookingTotalBadge(d.events, d); })
+                        .catch(() => {});
+                }
+                
+                // تحديث إجمالي المحفوظة عند تغيير الوحدة
+                bookingUnitSelect.addEventListener('change', function() {
+                    const unitId = this.value;
+                    if (unitId) {
+                        fetch(`/api/unit/${unitId}/bookings/`)
+                            .then(r => r.json())
+                            .then(d => { updateBookingTotalBadge(d.events, d); })
+                            .catch(() => {});
+                    }
+                });
+                
                 openCalendarBtn.addEventListener('click', function() {
                     const unitId = bookingUnitSelect.value;
                     const selectedOpt = bookingUnitSelect.options[bookingUnitSelect.selectedIndex];
@@ -457,7 +486,7 @@
                     
                     fetch(`/api/unit/${unitId}/bookings/`)
                         .then(r => r.json())
-                        .then(d => { displayCalendar(d.events); modal.show(); })
+                        .then(d => { displayCalendar(d); modal.show(); })
                         .catch(() => alert('حدث خطأ في تحميل البيانات'));
                 });
             }
@@ -478,29 +507,36 @@
                     fetch(`/api/unit/${currentUnitId}/bookings/`)
                         .then(r => r.json())
                         .then(d => {
-                            displayCalendar(d.events);
+                            displayCalendar(d);
                         })
                         .catch(() => alert('تعذر تحديث التقويم'));
                 });
                 header.appendChild(refreshBtn);
             }
 
-            function displayCalendar(events) {
+            function displayCalendar(data) {
+                const events = (data && Array.isArray(data.events)) ? data.events : [];
                 calendarEvents = events; // حفظ الأحداث للاستخدام عند التنقل
-                updateBookingTotalBadge(calendarEvents);
+                updateBookingTotalBadge(calendarEvents, data);
                 renderCalendarMonth();
             }
 
-            function updateBookingTotalBadge(events) {
-                if (!totalBadge) return;
+            function updateBookingTotalBadge(events, totalsData) {
+                if (!totalAmountElement) return;
+                if (totalsData && typeof totalsData.net_total === 'number') {
+                    const netValue = Number(totalsData.net_total);
+                    totalAmountElement.textContent = netValue.toLocaleString('ar-SA', { maximumFractionDigits: 2 });
+                    totalAmountElement.dataset.total = netValue;
+                    return;
+                }
                 let sum = 0;
                 for (const e of events || []) {
                     if (e && e.price != null && !isNaN(parseFloat(String(e.price).toString().replace(/,/g, '')))) {
                         sum += parseFloat(String(e.price).toString().replace(/,/g, ''));
                     }
                 }
-                const display = Math.round(sum).toLocaleString('en-US');
-                totalBadge.textContent = `${display} SR`;
+                totalAmountElement.textContent = sum.toLocaleString('ar-SA', { maximumFractionDigits: 2 });
+                totalAmountElement.dataset.total = sum;
             }
 
             function renderCalendarMonth() {
@@ -723,7 +759,7 @@
                                   fetch(`/api/unit/${currentUnitId}/bookings/`)
                                       .then(r => r.json())
                                       .then(d => {
-                                          displayCalendar(d.events);
+                                displayCalendar(d);
                                       });
                               } else {
                                   const msg = res.data && res.data.error ? res.data.error : `تعذر إلغاء الحجز (رمز ${res.status})`;
@@ -768,7 +804,7 @@
                           fetch(`/api/unit/${currentUnitId}/bookings/`)
                               .then(r => r.json())
                               .then(d => {
-                                  displayCalendar(d.events);
+                                  displayCalendar(d);
                               });
                       } else {
                           alert(res.error || 'تعذر إنشاء الحجز');
@@ -888,7 +924,7 @@
                           fetch(`/api/unit/${currentUnitId}/bookings/`)
                               .then(r => r.json())
                               .then(d => {
-                                  displayCalendar(d.events);
+                                  displayCalendar(d);
                                   // الحفاظ على الشهر الحالي المعروض عند التحديث
                               });
                       } else {
@@ -900,97 +936,4 @@
         });
     </script>
 </body>
-</html>        </div>
-    </div>
-    
-    <!-- Calendar Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const unitCards = document.querySelectorAll('.unit-card[data-unit-id]');
-            const modal = new bootstrap.Modal(document.getElementById('unitModal'));
-            
-            unitCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    const unitId = this.dataset.unitId;
-                    const unitName = this.querySelector('h5').textContent;
-                    
-                    document.getElementById('unitModalLabel').textContent = `تقويم الحجوزات - ${unitName}`;
-                    
-                    // جلب بيانات الحجوزات
-                    fetch(`/api/unit/${unitId}/bookings/`)
-                        .then(response => response.json())
-                        .then(data => {
-                            displayCalendar(data.events);
-                            modal.show();
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('حدث خطأ في تحميل البيانات');
-                        });
-                });
-            });
-
-            function displayCalendar(events) {
-                const container = document.getElementById('calendar-container');
-                const today = new Date();
-                const currentMonth = today.getMonth();
-                const currentYear = today.getFullYear();
-                
-                // إنشاء تقويم بسيط
-                let html = '<div class="calendar-wrapper" style="width: 100%; overflow-x: auto;"><div class="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; min-width: 280px;">';
-                
-                // أيام الأسبوع
-                const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-                days.forEach(day => {
-                    html += `<div style="font-weight: bold; padding: 6px 2px; background: #f5f6fa; border-radius: 5px; font-size: clamp(0.7rem, 2vw, 0.9rem);">${day}</div>`;
-                });
-                
-                // حساب عدد الأيام في الشهر
-                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-                
-                // إضافة خلايا فارغة للأيام قبل بداية الشهر
-                for (let i = 0; i < firstDay; i++) {
-                    html += '<div style="min-height: 35px;"></div>';
-                }
-                
-                // إضافة أيام الشهر
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const isBooked = events.some(event => event.date === dateStr);
-                    const isToday = day === today.getDate();
-                    
-                    let style = 'padding: 8px 4px; border-radius: 6px; border: 2px solid #e0e0e0; min-height: 35px; display: flex; align-items: center; justify-content: center; font-size: clamp(0.75rem, 2vw, 0.95rem);';
-                    if (isBooked) {
-                        style += 'background: #dc3545; color: white; font-weight: bold;';
-                    } else if (isToday) {
-                        style += 'background: #28a745; color: white; font-weight: bold;';
-                    } else {
-                        style += 'background: white;';
-                    }
-                    
-                    html += `<div style="${style}">${day}</div>`;
-                }
-                
-                html += '</div></div>';
-                
-                // إضافة مفتاح الألوان
-                html += `
-                    <div style="margin-top: 20px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; font-size: clamp(0.8rem, 2vw, 0.95rem);">
-                        <div style="display: flex; align-items: center; gap: 5px;"><span style="display: inline-block; width: 18px; height: 18px; background: #28a745; border-radius: 3px;"></span> <span>اليوم</span></div>
-                        <div style="display: flex; align-items: center; gap: 5px;"><span style="display: inline-block; width: 18px; height: 18px; background: #dc3545; border-radius: 3px;"></span> <span>محجوز</span></div>
-                        <div style="display: flex; align-items: center; gap: 5px;"><span style="display: inline-block; width: 18px; height: 18px; background: white; border: 2px solid #e0e0e0; border-radius: 3px;"></span> <span>متاح</span></div>
-                    </div>
-                `;
-                
-                container.innerHTML = html;
-            }
-        });
-    </script>
-</body>
 </html>
--->
-
-
-
-

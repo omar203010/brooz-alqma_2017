@@ -15,71 +15,143 @@
     {% load custom_tags %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, rgba(248, 246, 243, 0.65) 0%, rgba(255, 255, 255, 0.9) 100%);
+            color: #2d3436;
+            scroll-behavior: smooth;
+        }
+        .main-section {
+            padding: 90px 0 70px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgba(248, 246, 243, 0.55) 0%, rgba(255, 255, 255, 0.9) 100%);
+        }
+        .page-heading {
+            font-weight: 700;
+            color: #2d3436;
+        }
+        .total-card {
+            background: linear-gradient(135deg, rgba(168, 144, 120, 0.12) 0%, rgba(139, 119, 101, 0.12) 100%);
+            border: 2px solid rgba(168, 144, 120, 0.45);
+            border-radius: 16px;
+            padding: 28px 24px;
+            text-align: center;
+            box-shadow: 0 12px 26px rgba(168, 144, 120, 0.18);
+        }
+        .total-card h4 {
+            color: #8b7765;
+            font-weight: 600;
+        }
+        .total-card h3 {
+            color: #a89078;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
         .expense-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s;
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 24px rgba(168, 144, 120, 0.18);
+            border: 1px solid rgba(168, 144, 120, 0.18);
             cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         .expense-card:hover {
-            box-shadow: 0 4px 12px rgba(168, 144, 120, 0.3);
-            transform: translateY(-2px);
+            box-shadow: 0 16px 30px rgba(168, 144, 120, 0.25);
+            transform: translateY(-4px);
+        }
+        .expense-card .expense-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #2d3436;
+        }
+        .expense-card .expense-price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #a89078;
+        }
+        .expense-card .expense-description {
+            font-size: 0.92rem;
+            color: #636e72;
+            margin-bottom: 0;
         }
         .invoice-badge {
             background: linear-gradient(135deg, #a89078 0%, #8b7765 100%);
             color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .total-card {
-            background: linear-gradient(135deg, rgba(168, 144, 120, 0.1) 0%, rgba(139, 119, 101, 0.1) 100%);
-            border: 2px solid #a89078;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
+            padding: 6px 18px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 6px 12px rgba(168, 144, 120, 0.35);
         }
         .category-badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.8rem;
             font-weight: 600;
-            background: #f0f0f0;
-            color: #333;
+            background: rgba(168, 144, 120, 0.12);
+            color: #8b7765;
+        }
+        .category-badge i {
+            font-size: 0.85rem;
+        }
+        .empty-state {
+            background: rgba(255,255,255,0.85);
+            border-radius: 18px;
+            padding: 60px 30px;
+            box-shadow: 0 12px 28px rgba(168, 144, 120, 0.15);
+        }
+        footer.footer {
+            background: linear-gradient(135deg, rgba(45,52,54,0.95) 0%, rgba(139, 119, 101, 0.95) 100%);
+            color: #fff;
+            margin-top: auto;
+        }
+        @media (max-width: 991px) {
+            .main-section {
+                padding: 110px 0 70px;
+            }
+            .expense-card {
+                padding: 20px;
+            }
+        }
+        @media (max-width: 575px) {
+            .main-section {
+                padding: 100px 0 60px;
+            }
+            .expense-card {
+                padding: 18px;
+                margin-bottom: 20px;
+            }
+            .expense-card .expense-price {
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-light" style="background: linear-gradient(135deg, rgba(45, 52, 54, 0.98) 0%, rgba(99, 110, 114, 0.95) 30%, rgba(139, 119, 101, 0.95) 70%, rgba(168, 144, 120, 0.98) 100%);">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'units:units' %}">
-                <div class="logo-container">
-                    <img src="{% static 'images/logop.png' %}" alt="بروز القمة العقارية" class="brand-logo">
-                </div>
-            </a>
-            <div class="navbar-left-section">
-                <a href="{% url 'units:units' %}" class="btn" style="background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3);">
-                    <i class="fas fa-arrow-right"></i> العودة للوحدات
-                </a>
-            </div>
-        </div>
-    </nav>
-
     <!-- Main Content -->
-    <section class="py-5" style="min-height: 80vh; background: linear-gradient(135deg, rgba(248, 246, 243, 0.5) 0%, rgba(255, 255, 255, 0.8) 100%);">
+    <section class="main-section">
         <div class="container">
             <div class="row mb-4">
                 <div class="col-12">
-                    <h2 class="text-center mb-3" data-aos="fade-up">مصروفات {{ unit.name }}</h2>
+                    <h2 class="text-center mb-3 page-heading" data-aos="fade-up">مصروفات {{ unit.name }}</h2>
                     <div class="total-card" data-aos="fade-up" data-aos-delay="100">
                         <h4 class="mb-2">إجمالي المصروفات</h4>
-                        <h3 style="color: #a89078; font-weight: bold;">{{ total_expenses|floatformat:2 }} ر.س</h3>
+                        <h3>{{ total_expenses|floatformat:2 }} ر.س</h3>
+                    </div>
+                    <div class="text-center mt-4" data-aos="fade-up" data-aos-delay="150">
+                        <a href="{% url 'units:units' %}" class="btn" style="background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: #fff; border: none;">
+                            <i class="fas fa-arrow-right"></i> العودة للوحدات
+                        </a>
                     </div>
                 </div>
             </div>
@@ -90,39 +162,51 @@
                     {% for expense in expenses %}
                     <div class="expense-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|mul:50 }}" 
                          onclick="window.location.href='{% url 'units:expense_detail' expense.id %}'">
-                        <div class="row align-items-center">
-                            <div class="col-md-3">
-                                <h5 class="mb-2">{{ expense.get_category_display_ar }}</h5>
-                                <span class="category-badge">{{ expense.get_category_display_ar }}</span>
-                            </div>
-                            <div class="col-md-3">
-                                <strong style="color: #a89078; font-size: 1.2em;">{{ expense.price|floatformat:2 }} ر.س</strong>
-                            </div>
-                            <div class="col-md-4">
-                                {% if expense.description %}
-                                <p class="text-muted mb-0" style="font-size: 0.9em;">{{ expense.description|truncatewords:10 }}</p>
-                                {% else %}
-                                <p class="text-muted mb-0">لا يوجد وصف</p>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-2 text-end">
-                                {% if expense.invoice %}
-                                <span class="invoice-badge">
-                                    <i class="fas fa-file-invoice"></i> فاتورة
+                        <div class="row align-items-center g-3">
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="expense-title">{{ expense.get_category_display_ar }}</div>
+                                <span class="category-badge">
+                                    <i class="fas fa-tag"></i>
+                                    {{ expense.get_category_display_ar }}
                                 </span>
+                            </div>
+                            <div class="col-lg-2 col-md-3 col-sm-6">
+                                <div class="expense-price">{{ expense.price|floatformat:2 }} ر.س</div>
+                            </div>
+                            <div class="col-lg-5 col-md-5">
+                                {% if expense.description %}
+                                <p class="expense-description mb-0">{{ expense.description|truncatewords:14 }}</p>
                                 {% else %}
-                                <span class="text-muted">لا توجد فاتورة</span>
+                                <p class="expense-description mb-0 text-muted">لا يوجد وصف</p>
                                 {% endif %}
-                                <br>
-                                <small class="text-muted">{{ expense.created_at|date:"Y-m-d" }}</small>
+                            </div>
+                            <div class="col-lg-2 col-md-12">
+                                <div class="d-flex flex-column align-items-lg-end align-items-sm-start gap-2">
+                                    {% if expense.invoice %}
+                                    <span class="invoice-badge">
+                                        <i class="fas fa-file-invoice"></i>
+                                        فاتورة
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted small d-inline-flex align-items-center gap-1">
+                                        <i class="fas fa-file-circle-xmark"></i>
+                                        لا توجد فاتورة
+                                    </span>
+                                    {% endif %}
+                                    <small class="text-muted">
+                                        <i class="far fa-calendar-alt ms-1"></i>
+                                        {{ expense.created_at|date:"Y-m-d" }}
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                     {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-receipt" style="font-size: 4em; color: #ccc; margin-bottom: 20px;"></i>
-                        <p class="text-muted">لا توجد مصروفات مسجلة لهذه الوحدة</p>
+                    <div class="empty-state text-center" data-aos="fade-up">
+                        <i class="fas fa-receipt fa-4x mb-3" style="color: #d1c1b2;"></i>
+                        <h5 class="mb-2" style="color: #8b7765;">لا توجد مصروفات مسجلة لهذه الوحدة حتى الآن</h5>
+                        <p class="text-muted mb-0">عند إضافة أي مصروف سيظهر هنا مباشرة.</p>
                     </div>
                     {% endif %}
                 </div>

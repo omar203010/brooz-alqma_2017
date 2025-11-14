@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Unit, Booking, Report, Contract, UserProfile, Visit, Expense, UnitPricing, UnitImage
+from .models import Unit, Booking, Report, Contract, UserProfile, Visit, Expense, UnitPricing, SpecialPricing, ProfitPercentage, UnitImage
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
@@ -588,6 +588,81 @@ class UnitPricingAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """السماح بحذف الأسعار فقط للمديرين (staff)"""
         return request.user.is_staff
+
+
+@admin.register(SpecialPricing)
+class SpecialPricingAdmin(admin.ModelAdmin):
+    """إدارة الأسعار الخاصة للوحدات في لوحة التحكم"""
+    
+    list_display = ['unit', 'pricing_type_display', 'night_display', 'price', 'updated_at']
+    list_filter = ['unit', 'pricing_type', 'night_number', 'updated_at']
+    search_fields = ['unit__name']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('المعلومات الأساسية', {
+            'fields': ('unit', 'pricing_type', 'night_number', 'price')
+        }),
+        ('معلومات إضافية', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def pricing_type_display(self, obj):
+        """عرض نوع السعر بالعربية"""
+        return obj.get_pricing_type_display_ar()
+    pricing_type_display.short_description = 'نوع السعر'
+    
+    def night_display(self, obj):
+        """عرض الليلة بالعربية"""
+        return obj.get_night_number_display_ar()
+    night_display.short_description = 'الليلة'
+    
+    def has_add_permission(self, request):
+        """السماح بإضافة الأسعار الخاصة فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def has_change_permission(self, request, obj=None):
+        """السماح بتعديل الأسعار الخاصة فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def has_delete_permission(self, request, obj=None):
+        """السماح بحذف الأسعار الخاصة فقط للمديرين (staff)"""
+        return request.user.is_staff
+
+
+# تم إخفاء ProfitPercentage من admin لأنه أصبح متاحاً في صفحة الأرباح
+# @admin.register(ProfitPercentage)
+# class ProfitPercentageAdmin(admin.ModelAdmin):
+#     """إدارة نسب الأرباح للمالكين (المستثمرين) في لوحة التحكم"""
+#     
+#     list_display = ['owner', 'percentage', 'updated_at']
+#     list_filter = ['percentage', 'updated_at']
+#     search_fields = ['owner__username', 'owner__first_name', 'owner__last_name']
+#     readonly_fields = ['created_at', 'updated_at']
+#     
+#     fieldsets = (
+#         ('المعلومات الأساسية', {
+#             'fields': ('owner', 'percentage')
+#         }),
+#         ('معلومات إضافية', {
+#             'fields': ('created_at', 'updated_at'),
+#             'classes': ('collapse',)
+#         }),
+#     )
+#     
+#     def has_add_permission(self, request):
+#         """السماح بإضافة نسب الأرباح فقط للمديرين (staff)"""
+#         return request.user.is_staff
+#     
+#     def has_change_permission(self, request, obj=None):
+#         """السماح بتعديل نسب الأرباح فقط للمديرين (staff)"""
+#         return request.user.is_staff
+#     
+#     def has_delete_permission(self, request, obj=None):
+#         """السماح بحذف نسب الأرباح فقط للمديرين (staff)"""
+#         return request.user.is_staff
 
 
 @admin.register(UnitImage)

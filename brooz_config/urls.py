@@ -20,8 +20,11 @@ from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
+from units import views as unit_views
 
 urlpatterns = [
+    path('admin/profits/pdf/', unit_views.profits_pdf, name='admin_profits_pdf'),
+    path('admin/profits/', unit_views.profits_view, name='admin_profits'),
     path('admin/', admin.site.urls),
     path('', include('units.urls')),
     # Redirect common mistyped URL to admin

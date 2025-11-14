@@ -405,6 +405,120 @@ class UnitPricing(models.Model):
         return dict(self.WEEKDAYS).get(self.day_of_week, '')
 
 
+class SpecialPricing(models.Model):
+    """نموذج الأسعار الخاصة للوحدات (عيد الفطر، عيد الأضحى، الإجازات)"""
+    
+    PRICING_TYPES = [
+        ('eid_al_fitr', 'عيد الفطر'),
+        ('eid_al_adha', 'عيد الأضحى'),
+        ('holiday', 'إجازة'),
+    ]
+    
+    NIGHT_CHOICES = [
+        (1, 'الليلة الأولى'),
+        (2, 'الليلة الثانية'),
+        (3, 'الليلة الثالثة'),
+        (4, 'الليلة الرابعة'),
+        (5, 'الليلة الخامسة'),
+        (6, 'الليلة السادسة'),
+    ]
+    
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name='special_pricing',
+        verbose_name="الوحدة"
+    )
+    pricing_type = models.CharField(
+        max_length=20,
+        choices=PRICING_TYPES,
+        verbose_name="نوع السعر"
+    )
+    night_number = models.IntegerField(
+        choices=NIGHT_CHOICES,
+        verbose_name="رقم الليلة"
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="سعر الليلة",
+        default=0
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاريخ الإضافة"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="تاريخ التحديث"
+    )
+    
+    class Meta:
+        verbose_name = "سعر خاص"
+        verbose_name_plural = "أسعار خاصة"
+        unique_together = ['unit', 'pricing_type', 'night_number']
+        ordering = ['unit', 'pricing_type', 'night_number']
+    
+    def __str__(self):
+        return f"{self.unit.name} - {self.get_pricing_type_display()} - {self.get_night_number_display()} - {self.price} ر.س"
+    
+    def get_pricing_type_display_ar(self):
+        """الحصول على نوع السعر بالعربية"""
+        return dict(self.PRICING_TYPES).get(self.pricing_type, 'غير محدد')
+    
+    def get_night_number_display_ar(self):
+        """الحصول على اسم الليلة بالعربية"""
+        return dict(self.NIGHT_CHOICES).get(self.night_number, 'غير محدد')
+
+
+class ProfitPercentage(models.Model):
+    """نموذج نسبة الأرباح للمالكين (المستثمرين)"""
+    
+    PERCENTAGE_CHOICES = [
+        (20, '20%'),
+        (30, '30%'),
+        (40, '40%'),
+        (50, '50%'),
+        (60, '60%'),
+        (70, '70%'),
+        (80, '80%'),
+        (90, '90%'),
+        (100, '100%'),
+    ]
+    
+    owner = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='profit_percentage',
+        verbose_name="المالك (المستثمر)"
+    )
+    percentage = models.IntegerField(
+        choices=PERCENTAGE_CHOICES,
+        default=50,
+        verbose_name="نسبة الأرباح"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاريخ الإضافة"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="تاريخ التحديث"
+    )
+    
+    class Meta:
+        verbose_name = "نسبة الأرباح"
+        verbose_name_plural = "نسب الأرباح"
+        ordering = ['owner']
+    
+    def __str__(self):
+        return f"{self.owner.username} - {self.percentage}%"
+    
+    def calculate_profit(self, net_total):
+        """حساب الأرباح من إجمالي الصافي"""
+        return (net_total * self.percentage) / 100
+
+
 class UnitImage(models.Model):
     """صور إضافية للوحدة تظهر للمستخدم"""
     unit = models.ForeignKey(

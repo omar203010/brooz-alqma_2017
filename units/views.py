@@ -2,8 +2,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse, HttpResponse
-from .models import Unit, Booking, Report, Contract, Expense, UnitPricing
+from .models import Unit, Booking, Report, Contract, Expense, UnitPricing, SpecialPricing, ProfitPercentage
+from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta
+from calendar import monthrange
 from django.views.decorators.cache import never_cache
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponseRedirect
@@ -170,11 +172,21 @@ def unit_bookings(request, unit_id):
     """إرجاع الحجوزات لوحدة معينة بصيغة JSON للتقويم"""
     unit = get_object_or_404(Unit, id=unit_id)
     bookings = Booking.objects.filter(unit=unit)
+    expenses_qs = Expense.objects.filter(unit=unit)
     
     events = []
+    total_booking_amount = 0.0
     for booking in bookings:
         # إنشاء حدث لكل يوم في فترة الحجز
         current_date = booking.start_date
+        # عدد الأيام في الحجز الحالي (يشمل اليوم الأخير)
+        total_days = (booking.end_date - booking.start_date).days + 1
+        # حساب قيمة الحجز (سعر اليوم * عدد الأيام) أو المبالغ المسجلة
+        cash_transfer_total = float((booking.cash_amount or 0) + (booking.transfer_amount or 0))
+        if cash_transfer_total > 0:
+            total_booking_amount += cash_transfer_total
+        elif booking.price_per_day is not None:
+            total_booking_amount += float(booking.price_per_day) * max(total_days, 1)
         while current_date <= booking.end_date:
             events.append({
                 'date': current_date.strftime('%Y-%m-%d'),
@@ -187,7 +199,16 @@ def unit_bookings(request, unit_id):
             })
             current_date += timedelta(days=1)
     
-    resp = JsonResponse({'events': events, 'unit_name': unit.name})
+    total_expenses = expenses_qs.aggregate(total=Sum('price'))['total'] or 0
+    net_total = total_booking_amount - float(total_expenses)
+
+    resp = JsonResponse({
+        'events': events,
+        'unit_name': unit.name,
+        'total_booking_amount': round(total_booking_amount, 2),
+        'total_expenses': round(float(total_expenses), 2),
+        'net_total': round(net_total, 2),
+    })
     resp['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     resp['Pragma'] = 'no-cache'
     return resp
@@ -965,18 +986,14 @@ def unit_pricing(request, unit_id):
     """عرض أسعار تأجير وحدة معينة"""
     unit = get_object_or_404(Unit, id=unit_id, owner=request.user)
     
-    # جلب جميع أسعار الوحدة
-    pricing_list = UnitPricing.objects.filter(unit=unit).order_by('day_of_week')
+    # جلب جميع أسعار الوحدة الأساسية (وسط الأسبوع: خميس، جمعة، سبت)
+    pricing_list = UnitPricing.objects.filter(unit=unit, day_of_week__in=[3, 4, 5]).order_by('day_of_week')
     
-    # إنشاء قائمة بجميع أيام الأسبوع مع أسعارها
+    # إنشاء قائمة بأسعار وسط الأسبوع
     weekdays_info = [
-        (0, 'الإثنين'),
-        (1, 'الثلاثاء'),
-        (2, 'الأربعاء'),
         (3, 'الخميس'),
         (4, 'الجمعة'),
         (5, 'السبت'),
-        (6, 'الأحد'),
     ]
     
     pricing_data = []
@@ -991,9 +1008,53 @@ def unit_pricing(request, unit_id):
             'exists': pricing_obj is not None
         })
     
+    # جلب الأسعار الخاصة (عيد الفطر، عيد الأضحى، إجازات)
+    special_pricing_list = SpecialPricing.objects.filter(unit=unit).order_by('pricing_type', 'night_number')
+    
+    # تنظيم الأسعار الخاصة حسب النوع
+    eid_al_fitr_prices = {}
+    eid_al_adha_prices = {}
+    holiday_prices = {}
+    
+    for sp in special_pricing_list:
+        price_data = {
+            'night_number': sp.night_number,
+            'night_name': sp.get_night_number_display_ar(),
+            'price': sp.price
+        }
+        
+        if sp.pricing_type == 'eid_al_fitr':
+            eid_al_fitr_prices[sp.night_number] = price_data
+        elif sp.pricing_type == 'eid_al_adha':
+            eid_al_adha_prices[sp.night_number] = price_data
+        elif sp.pricing_type == 'holiday':
+            holiday_prices[sp.night_number] = price_data
+    
+    # إنشاء قوائم مرتبة للأسعار الخاصة (1-6)
+    NIGHT_CHOICES_DICT = dict(SpecialPricing.NIGHT_CHOICES)
+    def create_night_list(prices_dict):
+        nights = []
+        for night_num in range(1, 7):
+            if night_num in prices_dict:
+                nights.append(prices_dict[night_num])
+            else:
+                nights.append({
+                    'night_number': night_num,
+                    'night_name': NIGHT_CHOICES_DICT.get(night_num, f'الليلة {night_num}'),
+                    'price': None
+                })
+        return nights
+    
+    eid_al_fitr_nights = create_night_list(eid_al_fitr_prices)
+    eid_al_adha_nights = create_night_list(eid_al_adha_prices)
+    holiday_nights = create_night_list(holiday_prices)
+    
     context = {
         'unit': unit,
         'pricing_data': pricing_data,
+        'eid_al_fitr_nights': eid_al_fitr_nights,
+        'eid_al_adha_nights': eid_al_adha_nights,
+        'holiday_nights': holiday_nights,
     }
     
     response = render(request, 'unit_pricing.html', context)
@@ -1018,3 +1079,315 @@ def unit_gallery(request, unit_id):
     response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     response['Pragma'] = 'no-cache'
     return response
+
+
+@staff_member_required
+@never_cache
+def profits_view(request):
+    """عرض الأرباح والرسوم البيانية للمديرين"""
+    from collections import defaultdict
+    
+    # حساب الأرباح لكل وحدة
+    units = Unit.objects.all().order_by('name')
+    profits_data = []
+    
+    for unit in units:
+        # حساب إجمالي الحجوزات
+        bookings = Booking.objects.filter(unit=unit)
+        total_booking_amount = 0
+        
+        for booking in bookings:
+            cash_transfer_total = float((booking.cash_amount or 0) + (booking.transfer_amount or 0))
+            if cash_transfer_total > 0:
+                total_booking_amount += cash_transfer_total
+            elif booking.price_per_day is not None:
+                total_days = (booking.end_date - booking.start_date).days + 1
+                total_booking_amount += float(booking.price_per_day) * max(total_days, 1)
+        
+        # حساب إجمالي المصروفات
+        expenses = Expense.objects.filter(unit=unit)
+        total_expenses = float(expenses.aggregate(Sum('price'))['price__sum'] or 0)
+        
+        # حساب الصافي
+        net_total = total_booking_amount - total_expenses
+        
+        # الحصول على نسبة الأرباح من مالك الوحدة
+        percentage = 50  # افتراضي 50%
+        if unit.owner:
+            try:
+                profit_percentage_obj = unit.owner.profit_percentage
+                percentage = profit_percentage_obj.percentage
+            except ProfitPercentage.DoesNotExist:
+                percentage = 50  # افتراضي 50%
+        
+        # حساب الأرباح
+        profit = (net_total * percentage) / 100
+        
+        profits_data.append({
+            'unit': unit,
+            'owner': unit.owner,
+            'total_bookings': total_booking_amount,
+            'total_expenses': total_expenses,
+            'net_total': net_total,
+            'percentage': percentage,
+            'profit': profit,
+        })
+    
+    # بيانات الرسوم البيانية - أعلى الوحدات بالحجوزات
+    today = datetime.now().date()
+    current_month_start = today.replace(day=1)
+    current_year_start = today.replace(month=1, day=1)
+    
+    # الحجوزات خلال الشهر
+    monthly_bookings_raw = Booking.objects.filter(
+        start_date__gte=current_month_start,
+        start_date__lte=today
+    ).select_related('unit')
+    
+    monthly_bookings_dict = {}
+    for booking in monthly_bookings_raw:
+        unit_name = booking.unit.name
+        if unit_name not in monthly_bookings_dict:
+            monthly_bookings_dict[unit_name] = {'booking_count': 0, 'total_amount': 0}
+        monthly_bookings_dict[unit_name]['booking_count'] += 1
+        cash_transfer_total = float((booking.cash_amount or 0) + (booking.transfer_amount or 0))
+        if cash_transfer_total > 0:
+            monthly_bookings_dict[unit_name]['total_amount'] += cash_transfer_total
+        elif booking.price_per_day is not None:
+            total_days = (booking.end_date - booking.start_date).days + 1
+            monthly_bookings_dict[unit_name]['total_amount'] += float(booking.price_per_day) * max(total_days, 1)
+    
+    monthly_bookings = [{'unit__name': k, 'booking_count': v['booking_count'], 'total_amount': v['total_amount']} 
+                        for k, v in sorted(monthly_bookings_dict.items(), key=lambda x: x[1]['booking_count'], reverse=True)[:10]]
+    
+    # الحجوزات خلال السنة
+    yearly_bookings_raw = Booking.objects.filter(
+        start_date__gte=current_year_start,
+        start_date__lte=today
+    ).select_related('unit')
+    
+    yearly_bookings_dict = {}
+    for booking in yearly_bookings_raw:
+        unit_name = booking.unit.name
+        if unit_name not in yearly_bookings_dict:
+            yearly_bookings_dict[unit_name] = {'booking_count': 0, 'total_amount': 0}
+        yearly_bookings_dict[unit_name]['booking_count'] += 1
+        cash_transfer_total = float((booking.cash_amount or 0) + (booking.transfer_amount or 0))
+        if cash_transfer_total > 0:
+            yearly_bookings_dict[unit_name]['total_amount'] += cash_transfer_total
+        elif booking.price_per_day is not None:
+            total_days = (booking.end_date - booking.start_date).days + 1
+            yearly_bookings_dict[unit_name]['total_amount'] += float(booking.price_per_day) * max(total_days, 1)
+    
+    yearly_bookings = [{'unit__name': k, 'booking_count': v['booking_count'], 'total_amount': v['total_amount']} 
+                       for k, v in sorted(yearly_bookings_dict.items(), key=lambda x: x[1]['booking_count'], reverse=True)[:10]]
+    
+    # المصروفات خلال الشهر
+    monthly_expenses = Expense.objects.filter(
+        created_at__date__gte=current_month_start,
+        created_at__date__lte=today
+    ).values('unit__name').annotate(
+        total_expenses=Sum('price')
+    ).order_by('-total_expenses')[:10]
+    
+    # المصروفات خلال السنة
+    yearly_expenses = Expense.objects.filter(
+        created_at__date__gte=current_year_start,
+        created_at__date__lte=today
+    ).values('unit__name').annotate(
+        total_expenses=Sum('price')
+    ).order_by('-total_expenses')[:10]
+    
+    context = {
+        'profits_data': profits_data,
+        'monthly_bookings': monthly_bookings,
+        'yearly_bookings': yearly_bookings,
+        'monthly_expenses': list(monthly_expenses),
+        'yearly_expenses': list(yearly_expenses),
+    }
+    
+    response = render(request, 'admin/profits.html', context)
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    return response
+
+
+@staff_member_required
+@never_cache
+def profits_pdf(request):
+    """تصدير تقرير الأرباح كـ PDF"""
+    # حساب الأرباح لكل وحدة (نفس منطق profits_view)
+    units = Unit.objects.all().order_by('name')
+    profits_data = []
+    
+    for unit in units:
+        # حساب إجمالي الحجوزات
+        bookings = Booking.objects.filter(unit=unit)
+        total_booking_amount = 0
+        
+        for booking in bookings:
+            cash_transfer_total = float((booking.cash_amount or 0) + (booking.transfer_amount or 0))
+            if cash_transfer_total > 0:
+                total_booking_amount += cash_transfer_total
+            elif booking.price_per_day is not None:
+                total_days = (booking.end_date - booking.start_date).days + 1
+                total_booking_amount += float(booking.price_per_day) * max(total_days, 1)
+        
+        # حساب إجمالي المصروفات
+        expenses = Expense.objects.filter(unit=unit)
+        total_expenses = float(expenses.aggregate(Sum('price'))['price__sum'] or 0)
+        
+        # حساب الصافي
+        net_total = total_booking_amount - total_expenses
+        
+        # الحصول على نسبة الأرباح من مالك الوحدة
+        percentage = 50  # افتراضي 50%
+        if unit.owner:
+            try:
+                profit_percentage_obj = unit.owner.profit_percentage
+                percentage = profit_percentage_obj.percentage
+            except ProfitPercentage.DoesNotExist:
+                percentage = 50  # افتراضي 50%
+        
+        # حساب الأرباح
+        profit = (net_total * percentage) / 100
+        
+        profits_data.append({
+            'unit': unit,
+            'owner': unit.owner,
+            'total_bookings': total_booking_amount,
+            'total_expenses': total_expenses,
+            'net_total': net_total,
+            'percentage': percentage,
+            'profit': profit,
+        })
+    
+    # إنشاء PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=1*cm, leftMargin=1*cm, topMargin=1*cm, bottomMargin=1*cm)
+    elements = []
+    
+    # تسجيل الخط العربي
+    try:
+        pdfmetrics.registerFont(TTFont('Arabic', 'static/fonts/Cairo-Regular.ttf'))
+        pdfmetrics.registerFont(TTFont('ArabicBold', 'static/fonts/Cairo-Bold.ttf'))
+        arabic_font = 'Arabic'
+        arabic_font_bold = 'ArabicBold'
+    except:
+        arabic_font = 'Helvetica'
+        arabic_font_bold = 'Helvetica-Bold'
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.HexColor('#8b7765'),
+        spaceAfter=30,
+        alignment=TA_CENTER,
+        fontName=arabic_font_bold
+    )
+    
+    table_header_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=TA_CENTER,
+        fontName=arabic_font_bold,
+        textColor=colors.white,
+        backColor=colors.HexColor('#8b7765')
+    )
+    
+    table_style = ParagraphStyle(
+        'TableStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=TA_CENTER,
+        fontName=arabic_font
+    )
+    
+    # العنوان
+    title = Paragraph(reshape_arabic_text('تقرير الأرباح'), title_style)
+    elements.append(title)
+    elements.append(Spacer(1, 0.5*cm))
+    
+    # رؤوس الجدول
+    headers = [
+        Paragraph(reshape_arabic_text('الوحدة'), table_header_style),
+        Paragraph(reshape_arabic_text('المالك'), table_header_style),
+        Paragraph(reshape_arabic_text('إجمالي الحجوزات'), table_header_style),
+        Paragraph(reshape_arabic_text('إجمالي المصروفات'), table_header_style),
+        Paragraph(reshape_arabic_text('الصافي'), table_header_style),
+        Paragraph(reshape_arabic_text('نسبة الأرباح'), table_header_style),
+        Paragraph(reshape_arabic_text('الأرباح'), table_header_style)
+    ]
+    
+    data = [headers]
+    
+    # إجماليات
+    total_bookings = 0
+    total_expenses = 0
+    total_net = 0
+    total_profit = 0
+    
+    for item in profits_data:
+        unit_name = Paragraph(reshape_arabic_text(item['unit'].name), table_style)
+        owner_name = Paragraph(reshape_arabic_text(item['owner'].username if item['owner'] else '-'), table_style)
+        bookings = Paragraph(reshape_arabic_text(f"{item['total_bookings']:,.2f} ر.س"), table_style)
+        expenses = Paragraph(reshape_arabic_text(f"{item['total_expenses']:,.2f} ر.س"), table_style)
+        net = Paragraph(reshape_arabic_text(f"{item['net_total']:,.2f} ر.س"), table_style)
+        percentage = Paragraph(reshape_arabic_text(f"{item['percentage']}%"), table_style)
+        profit = Paragraph(reshape_arabic_text(f"{item['profit']:,.2f} ر.س"), table_style)
+        
+        data.append([unit_name, owner_name, bookings, expenses, net, percentage, profit])
+        
+        total_bookings += item['total_bookings']
+        total_expenses += item['total_expenses']
+        total_net += item['net_total']
+        total_profit += item['profit']
+    
+    # صف الإجمالي
+    total_row = [
+        Paragraph(reshape_arabic_text('الإجمالي'), table_style),
+        Paragraph('', table_style),
+        Paragraph(reshape_arabic_text(f"{total_bookings:,.2f} ر.س"), table_style),
+        Paragraph(reshape_arabic_text(f"{total_expenses:,.2f} ر.س"), table_style),
+        Paragraph(reshape_arabic_text(f"{total_net:,.2f} ر.س"), table_style),
+        Paragraph('', table_style),
+        Paragraph(reshape_arabic_text(f"{total_profit:,.2f} ر.س"), table_style)
+    ]
+    data.append(total_row)
+    
+    # إنشاء الجدول
+    available_width = A4[0] - (1*cm * 2)
+    num_cols = 7
+    col_width = available_width / num_cols
+    
+    table = Table(data, colWidths=[col_width] * num_cols)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#8b7765')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), arabic_font_bold),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -2), colors.black),
+        ('FONTNAME', (0, 1), (-1, -2), arabic_font),
+        ('FONTSIZE', (0, 1), (-1, -2), 9),
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f5f5f5')]),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e9ecef')),
+        ('FONTNAME', (0, -1), (-1, -1), arabic_font_bold),
+        ('FONTSIZE', (0, -1), (-1, -1), 10),
+    ]))
+    
+    elements.append(table)
+    doc.build(elements)
+    
+    buffer.seek(0)
+    response = HttpResponse(buffer.read(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="profits_report.pdf"'
+    return response
+
+

@@ -104,11 +104,16 @@
 {% endblock %}
 
 {% block nav-global %}
-<div style="margin: 10px 0;">
+<div style="margin: 10px 0; display: flex; gap: 10px; flex-wrap: wrap;">
     <a href="{% url 'units:payment_reports' %}"
        class="button"
        style="padding: 10px 14px; font-weight: 600; background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important; border-color: #8b7765 !important; color: white !important; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 8px;">
-        تقارير المدفوعات
+        <i class="fas fa-file-invoice"></i> تقارير المدفوعات
+    </a>
+    <a href="{% url 'admin_profits' %}"
+       class="button"
+       style="padding: 10px 14px; font-weight: 600; background: linear-gradient(135deg, #a89078 0%, #8b7765 100%) !important; border-color: #8b7765 !important; color: white !important; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 8px;">
+        <i class="fas fa-chart-line"></i> الأرباح
     </a>
   </div>
 {% endblock %}

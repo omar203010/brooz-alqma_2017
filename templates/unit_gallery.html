@@ -18,11 +18,16 @@
         html {
             scroll-behavior: smooth;
         }
-        
         body {
+            font-family: 'Cairo', sans-serif;
             overflow-x: hidden;
+            background: linear-gradient(135deg, rgba(248, 246, 243, 0.65) 0%, rgba(255, 255, 255, 0.92) 100%);
+            color: #2d3436;
         }
-        
+        .content-wrapper {
+            padding: 90px 0 70px;
+            min-height: 100vh;
+        }
         .gallery-card {
             background: white;
             border-radius: 10px;
@@ -82,17 +87,12 @@
         .gallery-container {
             padding-bottom: 30px;
         }
-        
-        /* Navbar fixed positioning */
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            width: 100%;
+        .gallery-empty {
+            background: rgba(255,255,255,0.85);
+            border-radius: 18px;
+            padding: 60px 30px;
+            box-shadow: 0 12px 28px rgba(168, 144, 120, 0.15);
         }
-        
         /* Better spacing for gallery cards */
         .gallery-card h6,
         .gallery-card p,
@@ -240,36 +240,35 @@
                 font-size: 0.9em;
             }
         }
+        footer.footer {
+            background: linear-gradient(135deg, rgba(45,52,54,0.95) 0%, rgba(139, 119, 101, 0.95) 100%);
+            color: #fff;
+        }
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 70px 0 60px;
+            }
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-light" style="background: linear-gradient(135deg, rgba(45, 52, 54, 0.98) 0%, rgba(99, 110, 114, 0.95) 30%, rgba(139, 119, 101, 0.95) 70%, rgba(168, 144, 120, 0.98) 100%);">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'units:units' %}">
-                <div class="logo-container">
-                    <img src="{% static 'images/logop.png' %}" alt="بروز القمة العقارية" class="brand-logo">
-                </div>
-            </a>
-            <div class="navbar-left-section">
-                <a href="{% url 'units:units' %}" class="btn" style="background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3);">
-                    <i class="fas fa-arrow-right"></i> العودة للوحدات
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <section class="py-4" style="padding-top: 100px !important; min-height: 80vh; background: linear-gradient(135deg, rgba(248, 246, 243, 0.5) 0%, rgba(255, 255, 255, 0.8) 100%); overflow-x: hidden;">
+    <section class="content-wrapper">
         <div class="container" style="max-width: 1400px; padding: 0 15px;">
             <div class="row mb-4">
                 <div class="col-12">
                     <h2 class="text-center mb-2" data-aos="fade-up" style="font-size: 2rem; font-weight: 700; color: #2d3748; margin-bottom: 10px;">
                         <i class="fas fa-images" style="color: #a89078;"></i> معرض صور {{ unit.name }}
                     </h2>
-                    <p class="text-center text-muted mb-4" data-aos="fade-up" data-aos-delay="100" style="font-size: 0.9rem; margin-bottom: 20px;">
+                    <p class="text-center text-muted mb-3" data-aos="fade-up" data-aos-delay="100" style="font-size: 0.9rem; margin-bottom: 20px;">
                         {% if images|length > 0 %}
                             إجمالي الصور: <strong>{{ images|length }}</strong> صورة
                         {% endif %}
                     </p>
+                    <div class="text-center" data-aos="fade-up" data-aos-delay="150">
+                        <a href="{% url 'units:units' %}" class="btn" style="background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: #fff; border: none;">
+                            <i class="fas fa-arrow-right"></i> العودة للوحدات
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -314,6 +313,13 @@
                         <div id="lightboxDescription" style="font-size: 0.9em; opacity: 0.9;"></div>
                     </div>
                 </div>
+            </div>
+            {% endif %}
+            {% if not images %}
+            <div class="gallery-empty text-center" data-aos="fade-up">
+                <i class="fas fa-images fa-4x mb-3" style="color: #d1c1b2;"></i>
+                <h5 class="mb-2" style="color: #8b7765;">لا توجد صور مضافة لهذه الوحدة حتى الآن</h5>
+                <p class="text-muted mb-0">عند إضافة صور جديدة ستظهر هنا مباشرة.</p>
             </div>
             {% endif %}
         </div>
