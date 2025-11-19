@@ -111,7 +111,7 @@ class BookingAdmin(admin.ModelAdmin):
 
 
 # تخصيص لوحة التحكم
-admin.site.site_header = "بروز القمة العقارية - لوحة التحكم"
+admin.site.site_header = "القمة العقارية - لوحة التحكم"
 admin.site.site_title = "إدارة الوحدات"
 admin.site.index_title = "مرحباً بك في لوحة التحكم"
 

@@ -546,7 +546,7 @@ def payment_reports_pdf(request):
     elements.append(main_title)
     
     # معلومات الشركة
-    company_info = Paragraph(reshape_arabic_text("بروز القمة العقارية"), subtitle_style)
+    company_info = Paragraph(reshape_arabic_text("القمة العقارية"), subtitle_style)
     elements.append(company_info)
     elements.append(Spacer(1, 0.3*cm))
     
@@ -824,7 +824,7 @@ def payment_reports_excel(request):
     center_alignment = Alignment(horizontal='center', vertical='center')
     
     # بناء العنوان مع معلومات الفلترة
-    title_text = 'تقارير المدفوعات - بروز القمة العقارية'
+    title_text = 'تقارير المدفوعات - القمة العقارية'
     if unit_id and unit_id != 'all':
         try:
             unit_name = Unit.objects.get(id=unit_id).name
