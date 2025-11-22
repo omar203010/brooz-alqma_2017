@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse, HttpResponse
-from .models import Unit, Booking, Report, Contract, Expense, UnitPricing, SpecialPricing, ProfitPercentage
+from .models import Unit, Booking, Report, Contract, Expense, UnitPricing, SpecialPricing, ProfitPercentage, Holiday
 from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta
 from calendar import monthrange
@@ -301,8 +301,21 @@ def cancel_booking(request, unit_id):
     # الصلاحيات: موظف أو مالك الوحدة أو نفس صاحب الحجز (بحقل user أو بالاسم)
     is_owner = (request.user == unit.owner)
     is_staff = request.user.is_staff
+    
+    # إذا كان الحجز من admin (user فارغ أو مختلف عن المستثمر الحالي)، فلا يمكن للمستثمر إلغاؤه
+    # إلا إذا كان هو نفسه من أنشأه
+    is_booking_owner_by_user = (booking.user_id == request.user.id) if (request.user.is_authenticated and booking.user_id) else False
+    
+    # إذا كان الحجز من admin (user فارغ)، فلا يمكن للمستثمر إلغاؤه
+    if not is_staff and not is_booking_owner_by_user and booking.user_id is None:
+        return JsonResponse({'error': 'لا يمكنك إلغاء هذا الحجز لأنه تم إنشاؤه من لوحة التحكم'}, status=403)
+    
+    # إذا كان الحجز من مستخدم آخر (ليس المستثمر الحالي)، فلا يمكن إلغاؤه
+    if not is_staff and booking.user_id and booking.user_id != request.user.id:
+        return JsonResponse({'error': 'لا يمكنك إلغاء هذا الحجز لأنه تم إنشاؤه من مستخدم آخر'}, status=403)
+    
+    # التحقق من الصلاحيات: موظف أو مالك الوحدة أو نفس صاحب الحجز
     is_booking_owner_by_name = False
-    is_booking_owner_by_user = (booking.user_id == request.user.id) if request.user.is_authenticated else False
     user_full_name = (request.user.get_full_name() or '').strip()
     user_username = (request.user.username or '').strip()
     if booking.customer_name:
@@ -347,7 +360,7 @@ def login_view(request):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('units:login')
+    return redirect('units:home')
 
 
 @staff_member_required
@@ -986,21 +999,43 @@ def unit_pricing(request, unit_id):
     """عرض أسعار تأجير وحدة معينة"""
     unit = get_object_or_404(Unit, id=unit_id, owner=request.user)
     
-    # جلب جميع أسعار الوحدة الأساسية (وسط الأسبوع: خميس، جمعة، سبت)
-    pricing_list = UnitPricing.objects.filter(unit=unit, day_of_week__in=[3, 4, 5]).order_by('day_of_week')
+    # جلب جميع أسعار الوحدة الأساسية (جميع الأيام)
+    # أيام الأسبوع: 0=الإثنين, 1=الثلاثاء, 2=الأربعاء, 3=الخميس, 4=الجمعة, 5=السبت, 6=الأحد
+    all_pricing_list = UnitPricing.objects.filter(unit=unit).order_by('day_of_week')
+    all_pricing_dict = {p.day_of_week: p for p in all_pricing_list}
     
-    # إنشاء قائمة بأسعار وسط الأسبوع
-    weekdays_info = [
+    # إنشاء قائمة بجميع الأسعار الأساسية (جميع الأيام)
+    all_days_info = [
+        (6, 'الأحد'),
+        (0, 'الإثنين'),
+        (1, 'الثلاثاء'),
+        (2, 'الأربعاء'),
         (3, 'الخميس'),
         (4, 'الجمعة'),
         (5, 'السبت'),
     ]
     
-    pricing_data = []
-    pricing_dict = {p.day_of_week: p for p in pricing_list}
+    all_pricing_data = []
+    for day_num, day_name in all_days_info:
+        pricing_obj = all_pricing_dict.get(day_num)
+        all_pricing_data.append({
+            'day_num': day_num,
+            'day_name': day_name,
+            'price': pricing_obj.price if pricing_obj else None,
+            'exists': pricing_obj is not None
+        })
     
+    # إنشاء قائمة بأسعار وسط الأسبوع فقط (أحد، اثنين، ثلاثاء، أربعاء)
+    weekdays_info = [
+        (6, 'الأحد'),
+        (0, 'الإثنين'),
+        (1, 'الثلاثاء'),
+        (2, 'الأربعاء'),
+    ]
+    
+    pricing_data = []
     for day_num, day_name in weekdays_info:
-        pricing_obj = pricing_dict.get(day_num)
+        pricing_obj = all_pricing_dict.get(day_num)
         pricing_data.append({
             'day_num': day_num,
             'day_name': day_name,
@@ -1008,13 +1043,29 @@ def unit_pricing(request, unit_id):
             'exists': pricing_obj is not None
         })
     
-    # جلب الأسعار الخاصة (عيد الفطر، عيد الأضحى، إجازات)
-    special_pricing_list = SpecialPricing.objects.filter(unit=unit).order_by('pricing_type', 'night_number')
+    # إنشاء قائمة بأسعار نهاية الأسبوع (خميس، جمعة، سبت)
+    weekend_info = [
+        (3, 'الخميس'),
+        (4, 'الجمعة'),
+        (5, 'السبت'),
+    ]
+    
+    weekend_pricing_data = []
+    for day_num, day_name in weekend_info:
+        pricing_obj = all_pricing_dict.get(day_num)
+        weekend_pricing_data.append({
+            'day_num': day_num,
+            'day_name': day_name,
+            'price': pricing_obj.price if pricing_obj else None,
+            'exists': pricing_obj is not None
+        })
+    
+    # جلب الأسعار الخاصة (عيد الفطر، عيد الأضحى)
+    special_pricing_list = SpecialPricing.objects.filter(unit=unit, pricing_type__in=['eid_al_fitr', 'eid_al_adha']).order_by('pricing_type', 'night_number')
     
     # تنظيم الأسعار الخاصة حسب النوع
     eid_al_fitr_prices = {}
     eid_al_adha_prices = {}
-    holiday_prices = {}
     
     for sp in special_pricing_list:
         price_data = {
@@ -1027,8 +1078,6 @@ def unit_pricing(request, unit_id):
             eid_al_fitr_prices[sp.night_number] = price_data
         elif sp.pricing_type == 'eid_al_adha':
             eid_al_adha_prices[sp.night_number] = price_data
-        elif sp.pricing_type == 'holiday':
-            holiday_prices[sp.night_number] = price_data
     
     # إنشاء قوائم مرتبة للأسعار الخاصة (1-6)
     NIGHT_CHOICES_DICT = dict(SpecialPricing.NIGHT_CHOICES)
@@ -1047,14 +1096,18 @@ def unit_pricing(request, unit_id):
     
     eid_al_fitr_nights = create_night_list(eid_al_fitr_prices)
     eid_al_adha_nights = create_night_list(eid_al_adha_prices)
-    holiday_nights = create_night_list(holiday_prices)
+    
+    # جلب الإجازات الجديدة (مع اسم الإجازة والتاريخ)
+    holidays_list = Holiday.objects.filter(unit=unit).order_by('holiday_date')
     
     context = {
         'unit': unit,
-        'pricing_data': pricing_data,
+        'all_pricing_data': all_pricing_data,  # جميع الأسعار الأساسية
+        'pricing_data': pricing_data,  # أيام وسط الأسبوع (أحد إلى أربعاء)
+        'weekend_pricing_data': weekend_pricing_data,  # أيام نهاية الأسبوع (خميس إلى سبت)
         'eid_al_fitr_nights': eid_al_fitr_nights,
         'eid_al_adha_nights': eid_al_adha_nights,
-        'holiday_nights': holiday_nights,
+        'holidays_list': holidays_list,  # الإجازات الجديدة
     }
     
     response = render(request, 'unit_pricing.html', context)

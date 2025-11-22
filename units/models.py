@@ -471,6 +471,48 @@ class SpecialPricing(models.Model):
         return dict(self.NIGHT_CHOICES).get(self.night_number, 'غير محدد')
 
 
+class Holiday(models.Model):
+    """نموذج الإجازات مع اسم الإجازة والتاريخ والسعر"""
+    
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name='holidays',
+        verbose_name="الوحدة"
+    )
+    holiday_name = models.CharField(
+        max_length=200,
+        verbose_name="اسم الإجازة",
+        help_text="مثال: يوم التأسيس، اليوم الوطني، إلخ"
+    )
+    holiday_date = models.DateField(
+        verbose_name="تاريخ الإجازة"
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="سعر الليلة",
+        default=0
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاريخ الإضافة"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="تاريخ التحديث"
+    )
+    
+    class Meta:
+        verbose_name = "إجازة"
+        verbose_name_plural = "الإجازات"
+        ordering = ['holiday_date']
+        unique_together = ['unit', 'holiday_date']
+    
+    def __str__(self):
+        return f"{self.unit.name} - {self.holiday_name} ({self.holiday_date}) - {self.price} ر.س"
+
+
 class ProfitPercentage(models.Model):
     """نموذج نسبة الأرباح للمالكين (المستثمرين)"""
     

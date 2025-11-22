@@ -1,8 +1,11 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Unit, Booking, Report, Contract, UserProfile, Visit, Expense, UnitPricing, SpecialPricing, ProfitPercentage, UnitImage
+from .models import Unit, Booking, Report, Contract, UserProfile, Visit, Expense, UnitPricing, SpecialPricing, ProfitPercentage, UnitImage, Holiday
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django import forms
+from .validators import validate_arabic_username
 
 class UnitImageInline(admin.TabularInline):
     model = UnitImage
@@ -390,8 +393,71 @@ class UserProfileInline(admin.StackedInline):
     verbose_name_plural = 'معلومات إضافية'
 
 
+class CustomUserCreationForm(UserCreationForm):
+    """نموذج إنشاء مستخدم مع دعم العربية في اسم المستخدم"""
+    
+    username = forms.CharField(
+        label='اسم المستخدم',
+        max_length=150,
+        help_text='يمكن استخدام الأحرف العربية والإنجليزية والأرقام والمسافات (مثال: عمر العنزي)',
+        validators=[validate_arabic_username],
+        widget=forms.TextInput(attrs={'autocomplete': 'username', 'class': 'vTextField'})
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # إزالة validators الافتراضية لـ username (بما في ذلك ASCIIUsernameValidator)
+        from django.contrib.auth.validators import ASCIIUsernameValidator, UnicodeUsernameValidator
+        # إزالة جميع validators الافتراضية
+        self.fields['username'].validators = []
+        # إضافة validator المخصص فقط
+        self.fields['username'].validators.append(validate_arabic_username)
+    
+    class Meta(UserCreationForm.Meta):
+        fields = ('username', 'email', 'first_name', 'last_name')
+
+
+class CustomUserChangeForm(UserChangeForm):
+    """نموذج تعديل مستخدم مع دعم العربية في اسم المستخدم"""
+    
+    username = forms.CharField(
+        label='اسم المستخدم',
+        max_length=150,
+        help_text='يمكن استخدام الأحرف العربية والإنجليزية والأرقام والمسافات (مثال: عمر العنزي)',
+        validators=[validate_arabic_username],
+        widget=forms.TextInput(attrs={'autocomplete': 'username', 'class': 'vTextField'})
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # إزالة validators الافتراضية لـ username (بما في ذلك ASCIIUsernameValidator)
+        from django.contrib.auth.validators import ASCIIUsernameValidator, UnicodeUsernameValidator
+        # إزالة جميع validators الافتراضية
+        self.fields['username'].validators = []
+        # إضافة validator المخصص فقط
+        self.fields['username'].validators.append(validate_arabic_username)
+
+
 class CustomUserAdmin(UserAdmin):
+    form = CustomUserChangeForm
+    add_form = CustomUserCreationForm
     inlines = (UserProfileInline,)
+    
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('معلومات شخصية', {'fields': ('first_name', 'last_name', 'email')}),
+        ('الصلاحيات', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+        }),
+        ('تواريخ مهمة', {'fields': ('last_login', 'date_joined')}),
+    )
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'password1', 'password2'),
+        }),
+    )
 
 
 # إلغاء تسجيل User الافتراضي وإعادة تسجيله مع CustomUserAdmin
@@ -629,6 +695,39 @@ class SpecialPricingAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         """السماح بحذف الأسعار الخاصة فقط للمديرين (staff)"""
+        return request.user.is_staff
+
+
+@admin.register(Holiday)
+class HolidayAdmin(admin.ModelAdmin):
+    """إدارة الإجازات في لوحة التحكم"""
+    
+    list_display = ['unit', 'holiday_name', 'holiday_date', 'price', 'updated_at']
+    list_filter = ['unit', 'holiday_date', 'updated_at']
+    search_fields = ['unit__name', 'holiday_name']
+    date_hierarchy = 'holiday_date'
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('المعلومات الأساسية', {
+            'fields': ('unit', 'holiday_name', 'holiday_date', 'price')
+        }),
+        ('معلومات إضافية', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """السماح بإضافة الإجازات فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def has_change_permission(self, request, obj=None):
+        """السماح بتعديل الإجازات فقط للمديرين (staff)"""
+        return request.user.is_staff
+    
+    def has_delete_permission(self, request, obj=None):
+        """السماح بحذف الإجازات فقط للمديرين (staff)"""
         return request.user.is_staff
 
 

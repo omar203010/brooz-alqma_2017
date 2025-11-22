@@ -99,32 +99,12 @@
                 ×
             </button>
             <ul class="hamburger-menu-list">
-                <li>
-                    <a href="/" class="hamburger-menu-link">
-                        <span>الرئيسية</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/#about" class="hamburger-menu-link">
-                        <span>من نحن</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'units:services' %}" class="hamburger-menu-link">
-                        <span>خدماتنا</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'units:units' %}" class="hamburger-menu-link">
-                        <span>استكشف الوحدات</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'units:policy' %}" class="hamburger-menu-link">
-                        <span>سياسة التشغيل</span>
-                    </a>
-                </li>
                 {% if user.is_authenticated %}
+                <li>
+                    <a href="#contact" class="hamburger-menu-link">
+                        <span>تواصل معنا</span>
+                    </a>
+                </li>
                 <li>
                     <form action="{% url 'units:logout' %}" method="post" style="display:inline;">
                         {% csrf_token %}
@@ -135,8 +115,28 @@
                 </li>
                 {% else %}
                 <li>
+                    <a href="/" class="hamburger-menu-link">
+                        <span>الرئيسية</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'units:services' %}" class="hamburger-menu-link">
+                        <span>خدماتنا</span>
+                    </a>
+                </li>
+                <li>
                     <a href="{% url 'units:login' %}" class="hamburger-menu-link">
-                        <span>تسجيل الدخول</span>
+                        <span>وحدتي</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/#about" class="hamburger-menu-link">
+                        <span>من نحن</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'units:policy' %}" class="hamburger-menu-link">
+                        <span>سياسة التشغيل</span>
                     </a>
                 </li>
                 {% endif %}
@@ -192,6 +192,20 @@
         <div class="container">
             <!-- Quick action cards -->
             <div class="row g-4 justify-content-center mb-4">
+                <!-- Total Saved Card -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="unit-card" style="cursor: default;">
+                        <div class="unit-content text-center">
+                            <h5 style="margin-bottom: 15px;"><i class="fas fa-wallet" style="color: #a89078;"></i> إجمالي المحفظة</h5>
+                            <div id="bookingTotalCard" style="background: linear-gradient(135deg, rgba(168, 144, 120, 0.12) 0%, rgba(139, 119, 101, 0.12) 100%); border: 2px solid rgba(168, 144, 120, 0.3); border-radius: 12px; padding: 20px; margin-top: 10px;">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: #a89078; margin-bottom: 5px;">
+                                    <span id="bookingTotalAmount">0</span> <span style="font-size: 1.2rem;">ر.س</span>
+                                </div>
+                                <small style="color: #8b7765; font-weight: 600;">إجمالي المحفظة بعد خصم المصاريف التشغيلية</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Bookings Card -->
                 <div class="col-lg-3 col-md-6">
                     <div class="unit-card" style="cursor: default;">
@@ -210,20 +224,6 @@
                             {% else %}
                             <div class="text-muted">لا توجد وحدات لعرض الحجوزات</div>
                             {% endif %}
-                        </div>
-                    </div>
-                </div>
-                <!-- Total Saved Card -->
-                <div class="col-lg-3 col-md-6">
-                    <div class="unit-card" style="cursor: default;">
-                        <div class="unit-content text-center">
-                            <h5 style="margin-bottom: 15px;"><i class="fas fa-wallet" style="color: #a89078;"></i> إجمالي المحفظة</h5>
-                            <div id="bookingTotalCard" style="background: linear-gradient(135deg, rgba(168, 144, 120, 0.12) 0%, rgba(139, 119, 101, 0.12) 100%); border: 2px solid rgba(168, 144, 120, 0.3); border-radius: 12px; padding: 20px; margin-top: 10px;">
-                                <div style="font-size: 1.8rem; font-weight: 700; color: #a89078; margin-bottom: 5px;">
-                                    <span id="bookingTotalAmount">0</span> <span style="font-size: 1.2rem;">ر.س</span>
-                                </div>
-                                <small style="color: #8b7765; font-weight: 600;">إجمالي المحفظة بعد خصم المصاريف التشغيلية</small>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -346,7 +346,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" id="contact">
         <div class="footer-main py-5">
             <div class="container">
                 <div class="row g-4" data-aos="fade-up" data-aos-duration="1000">
@@ -766,6 +766,8 @@
                     }
                     
                     const classes = event ? ('cal-day booked' + (event.is_user_booking ? ' own' : '')) : 'cal-day available';
+                    // إضافة data attributes لتحديد ما إذا كان الحجز من المستثمر الحالي أو من admin
+                    const dataAttrs = event ? `data-is-user-booking="${event.is_user_booking || false}" data-is-owner-booking="${event.is_owner_booking || false}"` : '';
                     // عرض رقم اليوم بدون أي أقواس - تنظيف شامل ومؤكد
                     let dayNumber = String(day);
                     // إزالة جميع أنواع الأقواس بشكل شامل: معقوفة {}، عادية ()، مربعة []
@@ -781,7 +783,7 @@
                     // تنظيف نهائي من أي أقواس متبقية - مؤكد 100%
                     dayNumber = dayNumber.replace(/[{}()[\]<>]/g, '');
                     // بناء HTML للخلية
-                    html += '<div class="' + classes + '" data-date="' + dateStr + '" style="' + cellStyle + '"><div style="' + dayNumStyle + '">' + dayNumber + '</div>' + priceHtml + ownerHtml + noteHtml + '</div>';
+                    html += '<div class="' + classes + '" data-date="' + dateStr + '" ' + dataAttrs + ' style="' + cellStyle + '"><div style="' + dayNumStyle + '">' + dayNumber + '</div>' + priceHtml + ownerHtml + noteHtml + '</div>';
                     }
                     html += `</div>`; // end days grid
                     html += `</div>`; // end month card
@@ -836,6 +838,15 @@
                 bookedDays.forEach(el => {
                     el.addEventListener('click', () => {
                         const isOwn = el.classList.contains('own');
+                        const isUserBooking = el.getAttribute('data-is-user-booking') === 'true';
+                        const isOwnerBooking = el.getAttribute('data-is-owner-booking') === 'true';
+                        
+                        // إذا كان الحجز من admin (ليس من المستثمر الحالي)، فلا يمكن إلغاؤه
+                        if (!isStaff && !isUserBooking && isOwnerBooking) {
+                            alert('لا يمكنك إلغاء هذا الحجز لأنه تم إنشاؤه من لوحة التحكم');
+                            return;
+                        }
+                        
                         if (!(isOwn || isOwnerForCurrentUnit || isStaff)) {
                             return; // ليس لديه صلاحية الإلغاء
                         }

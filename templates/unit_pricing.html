@@ -104,9 +104,8 @@
                     <div class="pricing-card" data-aos="fade-up">
                         <h3 class="text-center mb-4" style="color: #a89078; font-weight: 700;">الأسعار الأساسية</h3>
                         
-                        <!-- وسط الأسبوع -->
+                        <!-- وسط الأسبوع (أحد إلى أربعاء) -->
                         <div class="mb-4">
-                            <h5 class="mb-3" style="color: #8b7765; font-weight: 600;">وسط الأسبوع</h5>
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -117,6 +116,42 @@
                                     </thead>
                                     <tbody>
                                         {% for day_info in pricing_data %}
+                                        <tr class="weekday-row">
+                                            <td style="text-align: center; padding: 12px; font-weight: 600;">
+                                                {{ day_info.day_name }}
+                                            </td>
+                                            <td style="text-align: center; padding: 12px;">
+                                                {% if day_info.exists %}
+                                                <span class="price-display">{{ day_info.price|floatformat:2 }} ر.س</span>
+                                                {% else %}
+                                                <span class="no-price">غير محدد</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- خط فاصل واضح -->
+                        <hr style="border: 2px solid rgba(168, 144, 120, 0.4); margin: 30px 0; border-radius: 2px;">
+                        
+                        <!-- أيام وسط الأسبوع (خميس، جمعة، سبت) -->
+                        <div class="mb-4">
+                            <h5 class="mb-3" style="color: #8b7765; font-weight: 600; border-bottom: 2px solid rgba(168, 144, 120, 0.3); padding-bottom: 10px;">
+                                <i class="fas fa-calendar-week" style="margin-left: 8px;"></i> أيام وسط الأسبوع
+                            </h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr style="background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: white;">
+                                            <th style="text-align: center; padding: 12px;">اليوم</th>
+                                            <th style="text-align: center; padding: 12px;">سعر الليلة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for day_info in weekend_pricing_data %}
                                         <tr class="weekday-row">
                                             <td style="text-align: center; padding: 12px; font-weight: 600;">
                                                 {{ day_info.day_name }}
@@ -205,25 +240,33 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr style="background: linear-gradient(135deg, #a89078 0%, #8b7765 100%); color: white;">
-                                        <th style="text-align: center; padding: 12px;">الليلة</th>
+                                        <th style="text-align: center; padding: 12px;">اسم الإجازة</th>
+                                        <th style="text-align: center; padding: 12px;">التاريخ</th>
                                         <th style="text-align: center; padding: 12px;">سعر الليلة</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for night in holiday_nights %}
-                                    <tr class="weekday-row">
-                                        <td style="text-align: center; padding: 12px; font-weight: 600;">
-                                            {{ night.night_name }}
-                                        </td>
-                                        <td style="text-align: center; padding: 12px;">
-                                            {% if night.price %}
-                                            <span class="price-display">{{ night.price|floatformat:2 }} ر.س</span>
-                                            {% else %}
-                                            <span class="no-price">غير محدد</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
+                                    {% if holidays_list %}
+                                        {% for holiday in holidays_list %}
+                                        <tr class="weekday-row">
+                                            <td style="text-align: center; padding: 12px; font-weight: 600;">
+                                                {{ holiday.holiday_name }}
+                                            </td>
+                                            <td style="text-align: center; padding: 12px;">
+                                                {{ holiday.holiday_date|date:"Y-m-d" }}
+                                            </td>
+                                            <td style="text-align: center; padding: 12px;">
+                                                <span class="price-display">{{ holiday.price|floatformat:2 }} ر.س</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="3" style="text-align: center; padding: 20px; color: #8b7765;">
+                                                لا توجد إجازات محددة
+                                            </td>
+                                        </tr>
+                                    {% endif %}
                                 </tbody>
                             </table>
                         </div>

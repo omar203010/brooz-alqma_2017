@@ -20,9 +20,39 @@
                 ×
             </button>
             <ul class="hamburger-menu-list">
+                {% if user.is_authenticated %}
+                <li>
+                    <a href="{% url 'units:services' %}" class="hamburger-menu-link">
+                        <span>خدماتنا</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#contact" class="hamburger-menu-link">
+                        <span>تواصل معنا</span>
+                    </a>
+                </li>
+                <li>
+                    <form action="{% url 'units:logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="hamburger-menu-link" style="background:none;border:0;padding:0;">
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                </li>
+                {% else %}
                 <li>
                     <a href="/" class="hamburger-menu-link">
                         <span>الرئيسية</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'units:services' %}" class="hamburger-menu-link">
+                        <span>خدماتنا</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'units:login' %}" class="hamburger-menu-link">
+                        <span>وحدتي</span>
                     </a>
                 </li>
                 <li>
@@ -31,20 +61,16 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/services/" class="hamburger-menu-link">
-                        <span>خدماتنا</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/#units" class="hamburger-menu-link">
-                        <span>استكشف الوحدات</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/policy/" class="hamburger-menu-link">
+                    <a href="{% url 'units:policy' %}" class="hamburger-menu-link">
                         <span>سياسة التشغيل</span>
                     </a>
                 </li>
+                <li>
+                    <a href="#contact" class="hamburger-menu-link">
+                        <span>تواصل معنا</span>
+                    </a>
+                </li>
+                {% endif %}
             </ul>
         </div>
     </div>
@@ -94,6 +120,53 @@
     <!-- Services Section -->
     <section id="services" class="services-section py-5">
         <div class="container">
+            <!-- Operating Procedures Section -->
+            <div class="row mb-5" data-aos="fade-up" data-aos-duration="1000">
+                <div class="col-12">
+                    <div class="service-card" style="background: linear-gradient(135deg, rgba(168, 144, 120, 0.05) 0%, rgba(139, 119, 101, 0.03) 100%); border: 2px solid rgba(168, 144, 120, 0.2);">
+                        <div class="service-header text-center mb-4">
+                            <h3 style="color: #8b7765; font-weight: 700; margin-bottom: 30px;">إجراءات التشغيل والمتابعة</h3>
+                        </div>
+                        <div class="service-details">
+                            <div class="detail-item mb-4">
+                                <div class="detail-content">
+                                    <h6 style="color: #a89078; font-weight: 600; margin-bottom: 12px; font-size: 1.2rem;">
+                                        <i class="fas fa-laptop" style="margin-left: 8px;"></i>
+                                        صفحة خاصة للمستثمر
+                                    </h6>
+                                    <p style="line-height: 1.8; color: #5a5a5a; font-size: 1.05rem;">
+                                        يُسلَّم للمستثمر صفحة خاصة عبر موقعنا الإلكتروني تتيح له متابعة جميع تفاصيل الوحدة، بما في ذلك الحجوزات والمصروفات -إجمالي وتفاصيل كل عملية- مع إرفاق الفواتير الخاصة بأعمال الصيانة لضمان الشفافية، كما تتيح له حجز الأيام المخصصة لاستخدامه الشخصي مباشرة من خلال الموقع الإلكتروني.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="detail-item mb-4">
+                                <div class="detail-content">
+                                    <h6 style="color: #a89078; font-weight: 600; margin-bottom: 12px; font-size: 1.2rem;">
+                                        <i class="fas fa-calendar-check" style="margin-left: 8px;"></i>
+                                        متابعة الحجوزات أولاً بأول
+                                    </h6>
+                                    <p style="line-height: 1.8; color: #5a5a5a; font-size: 1.05rem;">
+                                        يتم إشعار المستثمر بجميع حجوزات وحدته عبر صفحته الخاصة على الموقع الإلكتروني، متضمنة الأسعار وتواريخ الحجز بشكل فوري، مع تحديث تلقائي للمبلغ الإجمالي بعد كل حجز لضمان وضوح كامل في البيانات.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-content">
+                                    <h6 style="color: #a89078; font-weight: 600; margin-bottom: 12px; font-size: 1.2rem;">
+                                        <i class="fas fa-receipt" style="margin-left: 8px;"></i>
+                                        متابعة المصروفات أولاً بأول
+                                    </h6>
+                                    <p style="line-height: 1.8; color: #5a5a5a; font-size: 1.05rem;">
+                                        يتم إشعار المستثمر بجميع مصروفات وحدته عبر صفحته الخاصة على الموقع الإلكتروني متضمنة بيانها وفواتيرها، ليحصل المستثمر على متابعة دقيقة وشفافة لكل عملية.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Paths Section -->
             <div class="row g-4">
                 <div class="col-lg-6" data-aos="fade-right" data-aos-duration="1000" data-aos-delay="100">
                     <div class="service-card featured">
@@ -167,7 +240,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" id="contact">
         <div class="footer-main py-5">
             <div class="container">
                 <div class="row g-4" data-aos="fade-up" data-aos-duration="1000">

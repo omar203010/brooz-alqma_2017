@@ -20,9 +20,39 @@
                 ×
             </button>
             <ul class="hamburger-menu-list">
+                {% if user.is_authenticated %}
+                <li>
+                    <a href="{% url 'units:services' %}" class="hamburger-menu-link">
+                        <span>خدماتنا</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#contact" class="hamburger-menu-link">
+                        <span>تواصل معنا</span>
+                    </a>
+                </li>
+                <li>
+                    <form action="{% url 'units:logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="hamburger-menu-link" style="background:none;border:0;padding:0;">
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                </li>
+                {% else %}
                 <li>
                     <a href="/" class="hamburger-menu-link">
                         <span>الرئيسية</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'units:services' %}" class="hamburger-menu-link">
+                        <span>خدماتنا</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'units:login' %}" class="hamburger-menu-link">
+                        <span>وحدتي</span>
                     </a>
                 </li>
                 <li>
@@ -31,20 +61,16 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/services/" class="hamburger-menu-link">
-                        <span>خدماتنا</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/#units" class="hamburger-menu-link">
-                        <span>استكشف الوحدات</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/policy/" class="hamburger-menu-link">
+                    <a href="{% url 'units:policy' %}" class="hamburger-menu-link">
                         <span>سياسة التشغيل</span>
                     </a>
                 </li>
+                <li>
+                    <a href="#contact" class="hamburger-menu-link">
+                        <span>تواصل معنا</span>
+                    </a>
+                </li>
+                {% endif %}
             </ul>
         </div>
     </div>
@@ -83,7 +109,7 @@
             <div class="row align-items-center" style="min-height: 50vh;">
                 <div class="col-lg-8 mx-auto text-center">
                     <div class="hero-content" style="margin-top: 100px;">
-                        <h1 class="hero-title" data-aos="fade-up" data-aos-duration="1000">سياسة التشغيل ⚙️</h1>
+                        <h1 class="hero-title" data-aos="fade-up" data-aos-duration="1000">سياسة التشغيل</h1>
                         <p class="hero-description" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="200">معايير الجودة والاحترافية في تشغيل وإدارة العقارات</p>
                     </div>
                 </div>
@@ -169,7 +195,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" id="contact">
         <div class="footer-main py-5">
             <div class="container">
                 <div class="row g-4" data-aos="fade-up" data-aos-duration="1000">
